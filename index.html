@@ -21,8 +21,7 @@ html{
 body{
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  line-height:1.5; padding:32px 24px 80px; max-width:960px; margin:0 auto;
-  min-height:100vh;
+  line-height:1.5; padding:32px 24px 40px; max-width:960px; margin:0 auto;
   overscroll-behavior:none;
 }
 h1{font-size:20px;font-weight:600;margin-bottom:4px}
@@ -99,6 +98,16 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
 .selected-book-preview{display:flex;gap:10px;align-items:center;background:var(--surface-2);
   border-radius:8px;padding:8px;margin-bottom:12px}
 .selected-book-preview img{width:32px;height:44px;object-fit:cover;border-radius:2px}
+.book-form-grid{display:grid;grid-template-columns:1fr 180px;gap:24px;align-items:start}
+.cover-dropzone{
+  border:1.5px dashed var(--border); border-radius:10px;
+  aspect-ratio:2/3; width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  text-align:center; color:var(--text-3); font-size:11px; line-height:1.4;
+  cursor:pointer; transition:border-color .15s, background .15s; padding:12px; position:relative; overflow:hidden;
+}
+.cover-dropzone:hover, .cover-dropzone.dragover{border-color:var(--green); background:var(--green-dim); color:var(--green)}
+.cover-dropzone img#coverDropImg{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:9px}
 .book-info{flex:1;min-width:0}
 .book-title{font-size:14px;font-weight:600}
 .book-meta{font-size:12px;color:var(--text-2)}
@@ -248,19 +257,38 @@ button.small{padding:4px 8px;font-size:12px}
 
     <div class="divider-text">ou renseigne les infos manuellement</div>
 
-    <div id="selectedPreview"></div>
-    <div class="field"><label>Titre</label><input id="bookTitle"></div>
-    <div class="field"><label>Auteur</label><input id="bookAuthor"></div>
-    <div class="field"><label>Catégorie</label><input id="bookCategory" placeholder="SF, Philosophie, ..."></div>
-    <div class="field"><label>Nombre de pages</label><input type="number" id="bookPages" min="1"></div>
-    <div class="field">
-      <label>Statut</label>
-      <select id="bookStatus">
-        <option value="lire">À lire</option>
-        <option value="cours" selected>En cours</option>
-        <option value="fini">Terminé</option>
-      </select>
+    <div class="book-form-grid">
+      <div>
+        <div id="selectedPreview"></div>
+        <div class="field"><label>Titre</label><input id="bookTitle"></div>
+        <div class="field"><label>Auteur</label><input id="bookAuthor"></div>
+        <div class="field"><label>Catégorie</label><input id="bookCategory" placeholder="SF, Philosophie, ..."></div>
+        <div class="field"><label>Nombre de pages</label><input type="number" id="bookPages" min="1"></div>
+        <div class="field">
+          <label>Statut</label>
+          <select id="bookStatus">
+            <option value="lire">À lire</option>
+            <option value="cours" selected>En cours</option>
+            <option value="fini">Terminé</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:var(--text-2);margin-bottom:5px">Pochette</label>
+        <div class="cover-dropzone" id="coverDropzone">
+          <svg id="coverDropIcon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span id="coverDropText">Glisse une image<br>ou clique pour choisir</span>
+          <img id="coverDropImg" style="display:none">
+        </div>
+        <input type="file" id="coverFileInput" accept="image/*" style="display:none">
+        <button type="button" class="ghost small" id="btnRemoveCover" style="display:none;margin-top:6px;width:100%">Retirer</button>
+      </div>
     </div>
+
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('modalBook')">Annuler</button>
       <button class="primary" id="confirmBook">Ajouter</button>
@@ -534,10 +562,8 @@ function openEditBook(id){
   document.getElementById('bookCategory').value = book.category || '';
   document.getElementById('bookPages').value = book.totalPages || '';
   document.getElementById('bookStatus').value = book.status;
-  pendingCoverUrl = book.coverUrl || '';
-  document.getElementById('selectedPreview').innerHTML = pendingCoverUrl
-    ? `<div class="selected-book-preview"><img src="${pendingCoverUrl}" alt=""><span style="font-size:13px;color:var(--text-2)">Pochette actuelle — recherche à nouveau pour la changer</span></div>`
-    : '';
+  document.getElementById('selectedPreview').innerHTML = '';
+  updateCoverPreview(book.coverUrl || '');
   document.getElementById('searchResults').style.display = 'none';
   openModal('modalBook');
 }
@@ -650,14 +676,66 @@ function quickLog(bookId){
 
 let pendingCoverUrl = '';
 
+function updateCoverPreview(url){
+  pendingCoverUrl = url || '';
+  const icon = document.getElementById('coverDropIcon');
+  const text = document.getElementById('coverDropText');
+  const img = document.getElementById('coverDropImg');
+  const removeBtn = document.getElementById('btnRemoveCover');
+  if(pendingCoverUrl){
+    img.src = pendingCoverUrl;
+    img.style.display = 'block';
+    icon.style.display = 'none';
+    text.style.display = 'none';
+    removeBtn.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+    icon.style.display = 'block';
+    text.style.display = 'block';
+    removeBtn.style.display = 'none';
+  }
+}
+
+function handleCoverFile(file){
+  if(!file || !file.type.startsWith('image/')) return;
+  if(file.size > 5 * 1024 * 1024){
+    alert('Image trop lourde (max 5 Mo). Choisis une image plus légère.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => updateCoverPreview(reader.result);
+  reader.readAsDataURL(file);
+}
+
+const coverDropzone = document.getElementById('coverDropzone');
+const coverFileInput = document.getElementById('coverFileInput');
+coverDropzone.addEventListener('click', () => coverFileInput.click());
+coverFileInput.addEventListener('change', (e) => handleCoverFile(e.target.files[0]));
+['dragover','dragenter'].forEach(evt => coverDropzone.addEventListener(evt, (e) => {
+  e.preventDefault(); coverDropzone.classList.add('dragover');
+}));
+['dragleave','dragend'].forEach(evt => coverDropzone.addEventListener(evt, () => {
+  coverDropzone.classList.remove('dragover');
+}));
+coverDropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  coverDropzone.classList.remove('dragover');
+  handleCoverFile(e.dataTransfer.files[0]);
+});
+document.getElementById('btnRemoveCover').addEventListener('click', (e) => {
+  e.stopPropagation();
+  coverFileInput.value = '';
+  updateCoverPreview('');
+});
+
 document.getElementById('btnAddBook').onclick = () => {
   editingBookId = null;
   document.getElementById('bookModalTitle').textContent = 'Ajouter un livre';
   document.getElementById('confirmBook').textContent = 'Ajouter';
   ['bookTitle','bookAuthor','bookCategory','bookPages','bookSearch'].forEach(id=>document.getElementById(id).value='');
-  pendingCoverUrl = '';
   document.getElementById('selectedPreview').innerHTML = '';
   document.getElementById('searchResults').style.display = 'none';
+  updateCoverPreview('');
   openModal('modalBook');
 };
 
@@ -862,13 +940,10 @@ function selectSearchResult(v){
   document.getElementById('bookAuthor').value = v.author;
   document.getElementById('bookCategory').value = v.category;
   document.getElementById('bookPages').value = v.pages;
-  pendingCoverUrl = v.cover;
   document.getElementById('searchResults').style.display = 'none';
   document.getElementById('bookSearch').value = v.title;
-  document.getElementById('selectedPreview').innerHTML = v.cover
-    ? `<div class="selected-book-preview"><img src="${v.cover}" alt="">
-       <span style="font-size:13px;color:var(--text-2)">Sélectionné — vérifie les champs, ils ne sont pas toujours fiables selon la source</span></div>`
-    : '';
+  document.getElementById('selectedPreview').innerHTML = '';
+  updateCoverPreview(v.cover);
 }
 
 document.getElementById('btnSettings').onclick = () => {
