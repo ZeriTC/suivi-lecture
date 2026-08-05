@@ -86,6 +86,9 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
   color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px}
 .shelf-title{font-size:13px;color:var(--text-2);line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.shelf-separator{flex:0 0 1px;align-self:stretch;background:rgba(57,255,136,0.25);margin:0 6px}
+.shelf-progress{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin:8px 0 6px}
+.shelf-progress-fill{height:100%;background:linear-gradient(90deg,#0B3D24,#39FF88);border-radius:2px}
 .search-wrap{position:relative}
 .search-results{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px;
   margin-top:6px;background:var(--surface-2)}
@@ -165,7 +168,7 @@ button.small{padding:4px 8px;font-size:12px}
   </div>
   <div class="card stat">
     <div class="label">Série</div>
-    <div class="value"><span class="streak-flame" id="streakFlameIcon"></span><span class="metric-glow" id="streakVal">0</span> <small>jours</small></div>
+    <div class="value"><span class="metric-glow" id="streakVal">0</span> <small>jours</small></div>
     <div class="label" style="margin-top:4px">Record : <span id="bestStreak">0</span></div>
   </div>
   <div class="card stat">
@@ -317,6 +320,16 @@ button.small{padding:4px 8px;font-size:12px}
 </div>
 
 <!-- Modal: settings -->
+<div class="modal-overlay" id="modalDaySessions">
+  <div class="modal">
+    <h3 id="daySessionsTitle">Sessions du jour</h3>
+    <div id="daySessionsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('modalDaySessions')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalSettings">
   <div class="modal">
     <h3>Réglages</h3>
@@ -496,6 +509,10 @@ function renderHeatmap(){
       todayCell = cell;
     }
     cell.title = `${iso} — ${m} min`;
+    if(m>0){
+      cell.style.cursor = 'pointer';
+      cell.addEventListener('click', () => openDaySessions(iso));
+    }
     el.appendChild(cell);
     d.setDate(d.getDate()+1);
   }
@@ -519,7 +536,16 @@ function renderShelf(){
   const el = document.getElementById('shelfGrid');
   if(data.books.length===0){ el.parentElement.innerHTML = '<div class="empty">Aucun livre ajouté pour l\'instant.</div>'; return; }
   const sorted = [...data.books].sort((a,b)=> (STATUS_ORDER[a.status]??3) - (STATUS_ORDER[b.status]??3));
-  el.innerHTML = sorted.map(b=>shelfItemHTML(b)).join('');
+  let html = '';
+  let separatorInserted = false;
+  sorted.forEach(b => {
+    if(!separatorInserted && b.status === 'fini'){
+      html += '<div class="shelf-separator" title="Terminés"></div>';
+      separatorInserted = true;
+    }
+    html += shelfItemHTML(b);
+  });
+  el.innerHTML = html;
 }
 
 // ---- menu contextuel global (évite le clipping du conteneur défilant) ----
@@ -579,9 +605,13 @@ function shelfItemHTML(b){
   const cover = b.coverUrl
     ? `<img class="shelf-cover" src="${b.coverUrl}" alt="">`
     : `<div class="shelf-cover placeholder" style="background:${color}">${escapeHTML(b.title.slice(0,28))}</div>`;
+  const pagesRead = Math.min(b.totalPages||0, pagesReadForBook(b.id));
+  const pct = b.totalPages ? Math.round((pagesRead/b.totalPages)*100) : (b.status==='fini' ? 100 : 0);
+  const progressBar = `<div class="shelf-progress"><div class="shelf-progress-fill" style="width:${pct}%"></div></div>`;
   return `<div class="shelf-item" title="${escapeHTML(b.title)}${b.author?' — '+escapeHTML(b.author):''}">
     <button class="shelf-menu-btn" onclick="openShelfMenu(event,'${b.id}')" aria-label="Options">&#8942;</button>
     ${cover}
+    ${progressBar}
     <div class="shelf-title">${escapeHTML(b.title)}</div>
   </div>`;
 }
@@ -621,6 +651,14 @@ function renderYearGoal(){
   document.getElementById('goalYearLabel').textContent = `${done}/${goal}`;
 }
 
+function fmtHoursMinutes(mins){
+  const h = Math.floor(mins/60);
+  const m = Math.round(mins%60);
+  if(h===0) return `${m} <small>min</small>`;
+  if(m===0) return `${h} <small>h</small>`;
+  return `${h}<small>h</small>${String(m).padStart(2,'0')} <small>min</small>`;
+}
+
 function render(){
   const info = levelInfo();
   document.getElementById('levelBadge').textContent = info.lvl;
@@ -628,7 +666,6 @@ function render(){
   document.getElementById('xpFill').style.width = info.pct + '%';
 
   const streak = computeStreak();
-  document.getElementById('streakFlameIcon').innerHTML = streak>0 ? '&#128293; ' : '';
   document.getElementById('streakVal').textContent = streak;
   document.getElementById('bestStreak').textContent = computeBestStreak();
 
@@ -637,7 +674,7 @@ function render(){
   const goalEl = document.getElementById('goalVal');
   goalEl.innerHTML = `${mToday} / ${goal} <small>min</small>` + (mToday>=goal ? ' <span class="goal-done">&#10003;</span>' : '');
 
-  document.getElementById('totalTime').innerHTML = (totalMinutes()/60).toFixed(1) + ' <small>h</small>';
+  document.getElementById('totalTime').innerHTML = fmtHoursMinutes(totalMinutes());
 
   renderHeatmap();
   renderHeatmapStats();
@@ -679,6 +716,47 @@ function quickLog(bookId){
   document.getElementById('logPages').value = '';
   openModal('modalLog');
   document.getElementById('logBook').value = bookId;
+}
+
+// ---- gestion des sessions d'un jour (correction / suppression) ----
+function openDaySessions(iso){
+  const list = document.getElementById('daySessionsList');
+  const d = new Date(iso);
+  document.getElementById('daySessionsTitle').textContent =
+    'Sessions du ' + d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+
+  function draw(){
+    const sessions = data.sessions.filter(s => s.date === iso);
+    if(sessions.length === 0){ closeModal('modalDaySessions'); return; }
+    list.innerHTML = sessions.map(s => {
+      const book = data.books.find(b => b.id === s.bookId);
+      return `<div style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:8px;padding:8px 10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${escapeHTML(book ? book.title : 'Livre supprimé')}</div>
+          <div style="font-size:12px;color:var(--text-2)">${s.minutes} min${s.pages ? ' · ' + s.pages + ' pages' : ''}</div>
+        </div>
+        <input type="date" value="${s.date}" data-id="${s.id}" data-field="date" style="width:130px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 6px;font-size:12px">
+        <button class="small ghost" data-del="${s.id}" aria-label="Supprimer">&#128465;</button>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('input[data-field="date"]').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const s = data.sessions.find(x => x.id === e.target.dataset.id);
+        if(s){ s.date = e.target.value; saveData(); }
+        closeModal('modalDaySessions');
+      });
+    });
+    list.querySelectorAll('button[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        data.sessions = data.sessions.filter(x => x.id !== btn.dataset.del);
+        saveData();
+        draw();
+      });
+    });
+  }
+  draw();
+  openModal('modalDaySessions');
 }
 
 let pendingCoverUrl = '';
