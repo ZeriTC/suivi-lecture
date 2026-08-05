@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de lecture</title>
+<style>
+:root{
+  --bg:#1a1a1a; --surface:#242424; --surface-2:#2c2c2c; --border:#3a3a3a;
+  --text:#eaeaea; --text-2:#a3a3a3; --text-3:#707070;
+  --green:#5dcaa5; --green-strong:#0f6e56; --green-dim:#173a30;
+  --amber:#ef9f27; --coral:#d85a30; --purple:#7f77dd; --teal:#1d9e75;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background: linear-gradient(180deg, #2e2e2e 0%, #202020 35%, #131313 100%);
+  background-attachment: fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  line-height:1.5; padding:32px 24px 80px; max-width:960px; margin:0 auto;
+  min-height:100vh;
+}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{color:var(--text-2);font-size:13px;margin-bottom:24px}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.card{background:var(--surface);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
+.stat{flex:1;min-width:130px}
+.card.stat{padding:12px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;min-height:0}
+.card.stat .level-row{width:100%;justify-content:center}
+.card.stat .level-row > div{text-align:center}
+.card.stat .xp-bar{width:100%}
+.stat .label{font-size:12px;color:var(--text-2);margin-bottom:6px}
+.stat .value{font-size:22px;font-weight:600}
+.stat .value small{font-size:12px;color:var(--text-3);font-weight:400}
+.level-badge{width:34px;height:34px;border-radius:50%;background:var(--green-dim);color:var(--green);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;flex-shrink:0}
+.level-row{display:flex;align-items:center;gap:12px}
+.xp-bar{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}
+.xp-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+.streak-flame{color:var(--amber)}
+.goal-done{color:var(--green)}
+section{margin-bottom:28px}
+section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+#heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px;overflow-x:auto;padding-bottom:4px}
+.hm-cell{width:11px;height:11px;border-radius:2px;background:var(--surface-2)}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);margin-top:8px}
+.hm-legend .hm-cell{width:10px;height:10px}
+.book-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
+  padding:14px;display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.book-spine{width:8px;height:44px;border-radius:2px;flex-shrink:0}
+.book-spine.cover{width:32px;height:44px;object-fit:cover;background:var(--surface-2)}
+.shelf-grid{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+.shelf-item{cursor:default;flex:0 0 90px;scroll-snap-align:start;position:relative}
+.shelf-menu-btn{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.55);border:none;color:#fff;font-size:14px;line-height:1;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.shelf-menu-btn:hover{background:rgba(0,0,0,.8)}
+#globalShelfMenu{position:fixed;display:none;flex-direction:column;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:8px;min-width:150px;overflow:hidden;z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#globalShelfMenu button{border:none;border-radius:0;background:transparent;text-align:left;padding:9px 12px;font-size:13px}
+#globalShelfMenu button:hover{background:var(--border)}
+#globalShelfMenu button.danger{color:#f09595}
+.hm-stats{display:flex;justify-content:center;flex-wrap:wrap;gap:18px;margin-top:14px;
+  font-size:12px;color:var(--text-2);text-align:center}
+.hm-stats strong{color:var(--green);font-weight:600}
+.level-sub{font-size:11px;color:var(--text-3);margin-top:4px}
+.card-actions-row{display:flex;gap:4px;flex-shrink:0}
+.donut-card{display:flex;align-items:center;gap:10px}
+.shelf-grid.mini{gap:10px}
+.shelf-grid.mini .shelf-item{flex:0 0 56px}
+.shelf-grid.mini .shelf-title{display:none}
+.shelf-cover{width:100%;aspect-ratio:2/3;border-radius:4px;object-fit:cover;background:var(--surface-2);
+  display:block;margin-bottom:6px}
+.shelf-cover.placeholder{display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px}
+.shelf-title{font-size:11px;color:var(--text-2);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.search-wrap{position:relative}
+.search-results{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;
+  margin-top:6px;background:var(--surface-2)}
+.search-result-item{display:flex;gap:10px;padding:8px 10px;cursor:pointer;align-items:center}
+.search-result-item:hover{background:var(--border)}
+.search-result-cover{width:28px;height:40px;object-fit:cover;border-radius:2px;background:var(--border);flex-shrink:0}
+.search-result-text{min-width:0}
+.search-result-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-result-meta{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.divider-text{font-size:11px;color:var(--text-3);text-align:center;margin:14px 0;
+  display:flex;align-items:center;gap:8px}
+.divider-text::before,.divider-text::after{content:'';flex:1;height:1px;background:var(--border)}
+.selected-book-preview{display:flex;gap:10px;align-items:center;background:var(--surface-2);
+  border-radius:8px;padding:8px;margin-bottom:12px}
+.selected-book-preview img{width:32px;height:44px;object-fit:cover;border-radius:2px}
+.book-info{flex:1;min-width:0}
+.book-title{font-size:14px;font-weight:600}
+.book-meta{font-size:12px;color:var(--text-2)}
+.progress{height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;background:var(--teal);border-radius:3px}
+.book-actions{display:flex;gap:6px;flex-shrink:0}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge.status-cours{background:var(--green-dim);color:var(--green)}
+.badge.status-lire{background:var(--surface-2);color:var(--text-2)}
+.badge.status-fini{background:#2c2410;color:var(--amber)}
+.category-group{margin-bottom:18px}
+.category-title{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:8px}
+button{
+  background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; font-family:inherit;
+}
+button:hover{background:var(--border)}
+button.primary{background:var(--green-strong);border-color:var(--green-strong);color:#eafff5}
+button.primary:hover{filter:brightness(1.1)}
+button.ghost{background:transparent;border-color:transparent;color:var(--text-2);padding:6px 8px}
+button.small{padding:4px 8px;font-size:12px}
+.top-actions{display:flex;gap:8px;margin-bottom:20px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:center;justify-content:center;z-index:10;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:20px;width:100%;max-width:400px;max-height:90vh;overflow:auto}
+.modal h3{font-size:16px;margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:5px}
+.field input,.field select{
+  width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;
+}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.timer-display{font-size:34px;font-weight:600;text-align:center;margin:10px 0;font-variant-numeric:tabular-nums}
+.empty{color:var(--text-3);font-size:13px;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+
+<div class="row">
+  <div class="card stat">
+    <div class="level-row">
+      <div class="level-badge" id="levelBadge">1</div>
+      <div style="flex:1">
+        <div class="label" id="levelLabel">Niveau 1</div>
+        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+        <div class="level-sub" id="levelSub"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card stat">
+    <div class="label">Série</div>
+    <div class="value"><span class="streak-flame" id="streakVal">0</span> <small>jours</small></div>
+    <div class="label" style="margin-top:4px">Record : <span id="bestStreak">0</span></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Objectif du jour</div>
+    <div class="value" id="goalVal">0 / 20 <small>min</small></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Temps total lu</div>
+    <div class="value" id="totalTime">0 <small>h</small></div>
+  </div>
+  <div class="card stat donut-card">
+    <svg viewBox="0 0 64 64" width="52" height="52">
+      <circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface-2)" stroke-width="8"></circle>
+      <circle id="goalDonut" cx="32" cy="32" r="26" fill="none" stroke="var(--teal)" stroke-width="8"
+        stroke-dasharray="0 163" stroke-linecap="round" transform="rotate(-90 32 32)"></circle>
+    </svg>
+    <div>
+      <div class="label">Objectif annuel</div>
+      <div class="value" id="goalYearLabel" style="font-size:16px">0/12</div>
+    </div>
+  </div>
+</div>
+
+<div class="top-actions">
+  <button class="primary" id="btnLog"><i>+</i> Enregistrer une session</button>
+  <button id="btnTimer">Démarrer un timer</button>
+  <button id="btnAddBook">Ajouter un livre</button>
+  <button class="ghost" id="btnSettings">Réglages</button>
+</div>
+
+<section>
+  <h2>Activité</h2>
+  <div class="card">
+    <div id="heatmap"></div>
+    <div class="hm-legend">
+      <span>Moins</span>
+      <div class="hm-cell" style="background:var(--surface-2)"></div>
+      <div class="hm-cell" style="background:#173a30"></div>
+      <div class="hm-cell" style="background:#0f6e56"></div>
+      <div class="hm-cell" style="background:#1d9e75"></div>
+      <div class="hm-cell" style="background:#5dcaa5"></div>
+      <span>Plus</span>
+    </div>
+    <div class="hm-stats" id="hmStats"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Bibliothèque</h2>
+  <div class="card">
+    <div class="shelf-grid" id="shelfGrid"></div>
+  </div>
+</section>
+
+<!-- Modal: log session -->
+<div class="modal-overlay" id="modalLog">
+  <div class="modal">
+    <h3>Enregistrer une session</h3>
+    <div class="field">
+      <label>Livre</label>
+      <select id="logBook"></select>
+    </div>
+    <div class="field">
+      <label>Minutes lues</label>
+      <input type="number" id="logMinutes" min="1" placeholder="20">
+    </div>
+    <div class="field">
+      <label>Pages lues (optionnel)</label>
+      <input type="number" id="logPages" min="0" placeholder="15">
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="logDate">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('modalLog')">Annuler</button>
+      <button class="primary" id="confirmLog">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: add book -->
+<div class="modal-overlay" id="modalBook">
+  <div class="modal">
+    <h3 id="bookModalTitle">Ajouter un livre</h3>
+
+    <div class="field search-wrap">
+      <label>Rechercher (titre, auteur...)</label>
+      <input id="bookSearch" placeholder="Ex : Dune, Bordage, Vinge...">
+      <div class="search-results" id="searchResults" style="display:none"></div>
+    </div>
+
+    <div class="divider-text">ou renseigne les infos manuellement</div>
+
+    <div id="selectedPreview"></div>
+    <div class="field"><label>Titre</label><input id="bookTitle"></div>
+    <div class="field"><label>Auteur</label><input id="bookAuthor"></div>
+    <div class="field"><label>Catégorie</label><input id="bookCategory" placeholder="SF, Philosophie, ..."></div>
+    <div class="field"><label>Nombre de pages</label><input type="number" id="bookPages" min="1"></div>
+    <div class="field">
+      <label>Statut</label>
+      <select id="bookStatus">
+        <option value="lire">À lire</option>
+        <option value="cours" selected>En cours</option>
+        <option value="fini">Terminé</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('modalBook')">Annuler</button>
+      <button class="primary" id="confirmBook">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: timer -->
+<div class="modal-overlay" id="modalTimer">
+  <div class="modal">
+    <h3>Timer de lecture</h3>
+    <div class="field">
+      <label>Livre</label>
+      <select id="timerBook"></select>
+    </div>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="modal-actions" style="justify-content:center">
+      <button id="timerStartStop" class="primary">Démarrer</button>
+      <button id="timerFinish" style="display:none">Terminer et enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: settings -->
+<div class="modal-overlay" id="modalSettings">
+  <div class="modal">
+    <h3>Réglages</h3>
+    <div class="field">
+      <label>Objectif quotidien (minutes)</label>
+      <input type="number" id="settingGoal" min="1">
+    </div>
+    <div class="field">
+      <label>Objectif annuel (nombre de livres)</label>
+      <input type="number" id="settingYearGoal" min="1">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('modalSettings')">Fermer</button>
+      <button class="primary" id="confirmSettings">Enregistrer</button>
+    </div>
+
+    <div class="divider-text">données</div>
+    <div style="display:flex;gap:8px">
+      <button id="btnExport" style="flex:1">Exporter (JSON)</button>
+      <button id="btnImport" style="flex:1">Importer (JSON)</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'reading-dashboard-v1';
+const CATEGORY_COLORS = ['#7f77dd','#d85a30','#1d9e75','#d4537e','#378add','#ba7517'];
+
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    const parsed = JSON.parse(raw);
+    if(parsed.settings && parsed.settings.booksPerYearGoal === undefined) parsed.settings.booksPerYearGoal = 12;
+    (parsed.books || []).forEach(b => {
+      if(b.status === 'fini' && !b.finishedDate) b.finishedDate = new Date().toISOString().slice(0,10);
+    });
+    return parsed;
+  }
+  return { books: [], sessions: [], settings: { dailyGoalMinutes: 20, booksPerYearGoal: 12 } };
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); render(); }
+let data = loadData();
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDateHeader(){
+  const d = new Date();
+  return d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+}
+
+function categoryColor(cat){
+  let hash = 0;
+  for(let i=0;i<cat.length;i++) hash = cat.charCodeAt(i) + ((hash<<5)-hash);
+  return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
+}
+
+// ---- XP / level ----
+function totalXP(){ return data.sessions.reduce((s,x)=>s+x.minutes,0); }
+
+const LEVELS = [
+  {name:'Novice', threshold:0},
+  {name:'Lecteur curieux', threshold:100},
+  {name:'Dévoreur de pages', threshold:300},
+  {name:'Rat de bibliothèque', threshold:600},
+  {name:'Bibliothécaire', threshold:1000},
+  {name:'Érudit en herbe', threshold:1500},
+  {name:'Chasseur de récits', threshold:2100},
+  {name:'Gardien des histoires', threshold:2800},
+  {name:'Sage des pages', threshold:3600},
+  {name:'Archiviste', threshold:4500},
+  {name:'Maître des mots', threshold:5500},
+  {name:'Voyageur littéraire', threshold:6600},
+  {name:'Sentinelle du savoir', threshold:7800},
+  {name:'Alchimiste des récits', threshold:9100},
+  {name:'Oracle des bibliothèques', threshold:10500},
+  {name:'Grand lecteur', threshold:12000},
+  {name:'Conservateur', threshold:13600},
+  {name:'Philosophe de chevet', threshold:15300},
+  {name:'Encyclopédiste', threshold:17100},
+  {name:'Vénérable lecteur', threshold:19000},
+  {name:'Sommité littéraire', threshold:21000},
+  {name:'Légende vivante', threshold:23100},
+  {name:'Maître bibliothécaire', threshold:25300},
+  {name:'Grand sage', threshold:27600},
+  {name:'Immortel des lettres', threshold:30000},
+];
+
+function levelInfo(){
+  const xp = totalXP();
+  let idx = 0;
+  for(let i=0;i<LEVELS.length;i++){
+    if(xp >= LEVELS[i].threshold) idx = i; else break;
+  }
+  const cur = LEVELS[idx].threshold;
+  const nextLevel = LEVELS[idx+1];
+  const pct = nextLevel ? Math.min(100, Math.round(((xp-cur)/(nextLevel.threshold-cur))*100)) : 100;
+  const remaining = nextLevel ? nextLevel.threshold - xp : 0;
+  return { lvl: idx+1, xp, pct, name: LEVELS[idx].name, remaining, maxed: !nextLevel };
+}
+
+// ---- streak ----
+function daysWithSessions(){
+  const set = new Set(data.sessions.map(s=>s.date));
+  return set;
+}
+function computeStreak(){
+  const set = daysWithSessions();
+  let d = new Date();
+  let streak = 0;
+  // if nothing logged today, start checking from yesterday
+  if(!set.has(todayStr())){
+    d.setDate(d.getDate()-1);
+  }
+  while(true){
+    const iso = d.toISOString().slice(0,10);
+    if(set.has(iso)){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+function computeBestStreak(){
+  const set = [...daysWithSessions()].sort();
+  if(set.length===0) return 0;
+  let best=1, cur=1;
+  for(let i=1;i<set.length;i++){
+    const prev = new Date(set[i-1]); const now = new Date(set[i]);
+    const diff = (now-prev)/86400000;
+    if(diff===1){ cur++; best=Math.max(best,cur); } else cur=1;
+  }
+  return best;
+}
+
+// ---- minutes today / total ----
+function minutesToday(){
+  return data.sessions.filter(s=>s.date===todayStr()).reduce((a,b)=>a+b.minutes,0);
+}
+function totalMinutes(){
+  return data.sessions.reduce((a,b)=>a+b.minutes,0);
+}
+
+// ---- heatmap ----
+function renderHeatmap(){
+  const el = document.getElementById('heatmap');
+  el.innerHTML='';
+  const minutesByDay = {};
+  data.sessions.forEach(s=>{ minutesByDay[s.date] = (minutesByDay[s.date]||0) + s.minutes; });
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 363);
+  // align start to a Sunday
+  while(start.getDay() !== 0) start.setDate(start.getDate()-1);
+
+  let d = new Date(start);
+  while(d <= end){
+    const iso = d.toISOString().slice(0,10);
+    const m = minutesByDay[iso] || 0;
+    let bg = 'var(--surface-2)';
+    if(m>0 && m<15) bg = '#173a30';
+    else if(m>=15 && m<30) bg = '#0f6e56';
+    else if(m>=30 && m<60) bg = '#1d9e75';
+    else if(m>=60) bg = '#5dcaa5';
+    const cell = document.createElement('div');
+    cell.className='hm-cell';
+    cell.style.background = bg;
+    cell.title = `${iso} — ${m} min`;
+    el.appendChild(cell);
+    d.setDate(d.getDate()+1);
+  }
+}
+
+// ---- book helpers ----
+function statusLabel(s){ return {lire:'À lire', cours:'En cours', fini:'Terminé'}[s]; }
+function statusClass(s){ return {lire:'status-lire', cours:'status-cours', fini:'status-fini'}[s]; }
+function pagesReadForBook(bookId){
+  return data.sessions.filter(s=>s.bookId===bookId).reduce((a,b)=>a+(b.pages||0),0);
+}
+
+const STATUS_ORDER = { cours: 0, lire: 1, fini: 2 };
+function renderShelf(){
+  const el = document.getElementById('shelfGrid');
+  if(data.books.length===0){ el.parentElement.innerHTML = '<div class="empty">Aucun livre ajouté pour l\'instant.</div>'; return; }
+  const sorted = [...data.books].sort((a,b)=> (STATUS_ORDER[a.status]??3) - (STATUS_ORDER[b.status]??3));
+  el.innerHTML = sorted.map(b=>shelfItemHTML(b)).join('');
+}
+
+// ---- menu contextuel global (évite le clipping du conteneur défilant) ----
+function openShelfMenu(evt, id){
+  evt.stopPropagation();
+  const menu = document.getElementById('globalShelfMenu');
+  menu.innerHTML = `
+    <button onclick="quickLog('${id}');closeShelfMenu()">Log une session</button>
+    <button onclick="openEditBook('${id}');closeShelfMenu()">Modifier</button>
+    <button class="danger" onclick="deleteBook('${id}');closeShelfMenu()">Supprimer</button>
+  `;
+  const rect = evt.currentTarget.getBoundingClientRect();
+  menu.style.display = 'flex';
+  const menuWidth = 150;
+  let left = rect.right - menuWidth;
+  if(left < 8) left = 8;
+  if(left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+}
+function closeShelfMenu(){
+  document.getElementById('globalShelfMenu').style.display = 'none';
+}
+document.addEventListener('click', closeShelfMenu);
+window.addEventListener('scroll', closeShelfMenu, true);
+window.addEventListener('resize', closeShelfMenu);
+
+function deleteBook(id){
+  const book = data.books.find(b=>b.id===id);
+  if(!book) return;
+  if(!confirm(`Supprimer « ${book.title} » de ta bibliothèque ? L'historique de tes sessions de lecture pour ce livre sera conservé mais ne sera plus rattaché à un titre visible.`)) return;
+  data.books = data.books.filter(b=>b.id!==id);
+  saveData();
+}
+
+let editingBookId = null;
+function openEditBook(id){
+  const book = data.books.find(b=>b.id===id);
+  if(!book) return;
+  editingBookId = id;
+  document.getElementById('bookModalTitle').textContent = `Modifier « ${book.title} »`;
+  document.getElementById('confirmBook').textContent = 'Enregistrer';
+  document.getElementById('bookSearch').value = '';
+  document.getElementById('bookTitle').value = book.title;
+  document.getElementById('bookAuthor').value = book.author || '';
+  document.getElementById('bookCategory').value = book.category || '';
+  document.getElementById('bookPages').value = book.totalPages || '';
+  document.getElementById('bookStatus').value = book.status;
+  pendingCoverUrl = book.coverUrl || '';
+  document.getElementById('selectedPreview').innerHTML = pendingCoverUrl
+    ? `<div class="selected-book-preview"><img src="${pendingCoverUrl}" alt=""><span style="font-size:13px;color:var(--text-2)">Pochette actuelle — recherche à nouveau pour la changer</span></div>`
+    : '';
+  document.getElementById('searchResults').style.display = 'none';
+  openModal('modalBook');
+}
+
+function shelfItemHTML(b){
+  const color = categoryColor(b.category||'default');
+  const cover = b.coverUrl
+    ? `<img class="shelf-cover" src="${b.coverUrl}" alt="">`
+    : `<div class="shelf-cover placeholder" style="background:${color}">${escapeHTML(b.title.slice(0,28))}</div>`;
+  return `<div class="shelf-item" title="${escapeHTML(b.title)}${b.author?' — '+escapeHTML(b.author):''}">
+    <button class="shelf-menu-btn" onclick="openShelfMenu(event,'${b.id}')" aria-label="Options">&#8942;</button>
+    ${cover}
+    <div class="shelf-title">${escapeHTML(b.title)}</div>
+  </div>`;
+}
+
+function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ---- stats sous la heatmap (façon Anki) ----
+function renderHeatmapStats(){
+  const el = document.getElementById('hmStats');
+  const days = daysWithSessions();
+  if(days.size===0){ el.innerHTML = ''; return; }
+  const dates = [...days].sort();
+  const first = new Date(dates[0]);
+  const today = new Date();
+  const daysSinceStart = Math.max(1, Math.floor((today - first) / 86400000) + 1);
+  const avgPerDay = Math.round(totalMinutes() / daysSinceStart);
+  const pctLearned = Math.round((days.size / daysSinceStart) * 100);
+  el.innerHTML = `
+    <span>Moyenne quotidienne : <strong>${avgPerDay} min</strong></span>
+    <span>Jours actifs : <strong>${pctLearned}%</strong></span>
+    <span>Meilleure série : <strong>${computeBestStreak()} jours</strong></span>
+    <span>Série actuelle : <strong>${computeStreak()} jours</strong></span>
+  `;
+}
+
+// ---- objectif annuel (camembert) ----
+function booksFinishedThisYear(){
+  const year = new Date().getFullYear();
+  return data.books.filter(b => b.status==='fini' && b.finishedDate && new Date(b.finishedDate).getFullYear()===year).length;
+}
+function renderYearGoal(){
+  const goal = data.settings.booksPerYearGoal || 12;
+  const done = booksFinishedThisYear();
+  const pct = Math.min(1, done/goal);
+  const circumference = 2 * Math.PI * 26; // r=26
+  document.getElementById('goalDonut').setAttribute('stroke-dasharray', `${pct*circumference} ${circumference}`);
+  document.getElementById('goalYearLabel').textContent = `${done}/${goal}`;
+}
+
+function render(){
+  const info = levelInfo();
+  document.getElementById('levelBadge').textContent = info.lvl;
+  document.getElementById('levelLabel').textContent = `Niveau ${info.lvl} · ${info.name}`;
+  document.getElementById('xpFill').style.width = info.pct + '%';
+  document.getElementById('levelSub').textContent = info.maxed
+    ? `Niveau maximum atteint · ${info.xp} XP`
+    : `Restants avant le niveau suivant : ${info.remaining} XP`;
+
+  const streak = computeStreak();
+  document.getElementById('streakVal').innerHTML = (streak>0 ? '&#128293; ' : '') + streak;
+  document.getElementById('bestStreak').textContent = computeBestStreak();
+
+  const goal = data.settings.dailyGoalMinutes;
+  const mToday = minutesToday();
+  const goalEl = document.getElementById('goalVal');
+  goalEl.innerHTML = `${mToday} / ${goal} <small>min</small>` + (mToday>=goal ? ' <span class="goal-done">&#10003;</span>' : '');
+
+  document.getElementById('totalTime').innerHTML = (totalMinutes()/60).toFixed(1) + ' <small>h</small>';
+
+  renderHeatmap();
+  renderHeatmapStats();
+  renderYearGoal();
+  renderShelf();
+  fillBookSelects();
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function fillBookSelects(){
+  const opts = data.books.map(b=>`<option value="${b.id}">${escapeHTML(b.title)}</option>`).join('');
+  document.getElementById('logBook').innerHTML = opts || '<option value="">Aucun livre — ajoutes-en un</option>';
+  document.getElementById('timerBook').innerHTML = opts || '<option value="">Aucun livre — ajoutes-en un</option>';
+}
+
+// ---- modals ----
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('btnLog').onclick = () => {
+  document.getElementById('logDate').value = todayStr();
+  document.getElementById('logMinutes').value = '';
+  document.getElementById('logPages').value = '';
+  openModal('modalLog');
+};
+document.getElementById('confirmLog').onclick = () => {
+  const bookId = document.getElementById('logBook').value;
+  const minutes = parseInt(document.getElementById('logMinutes').value, 10);
+  const pages = parseInt(document.getElementById('logPages').value, 10) || 0;
+  const date = document.getElementById('logDate').value || todayStr();
+  if(!bookId || !minutes){ alert('Choisis un livre et indique les minutes lues.'); return; }
+  data.sessions.push({ id: uid(), bookId, minutes, pages, date });
+  closeModal('modalLog');
+  saveData();
+};
+function quickLog(bookId){
+  document.getElementById('logDate').value = todayStr();
+  document.getElementById('logMinutes').value = '';
+  document.getElementById('logPages').value = '';
+  openModal('modalLog');
+  document.getElementById('logBook').value = bookId;
+}
+
+let pendingCoverUrl = '';
+
+document.getElementById('btnAddBook').onclick = () => {
+  editingBookId = null;
+  document.getElementById('bookModalTitle').textContent = 'Ajouter un livre';
+  document.getElementById('confirmBook').textContent = 'Ajouter';
+  ['bookTitle','bookAuthor','bookCategory','bookPages','bookSearch'].forEach(id=>document.getElementById(id).value='');
+  pendingCoverUrl = '';
+  document.getElementById('selectedPreview').innerHTML = '';
+  document.getElementById('searchResults').style.display = 'none';
+  openModal('modalBook');
+};
+
+document.getElementById('confirmBook').onclick = () => {
+  const title = document.getElementById('bookTitle').value.trim();
+  const author = document.getElementById('bookAuthor').value.trim();
+  const category = document.getElementById('bookCategory').value.trim();
+  const totalPages = parseInt(document.getElementById('bookPages').value, 10) || 0;
+  const status = document.getElementById('bookStatus').value;
+  if(!title){ alert('Indique un titre.'); return; }
+  if(editingBookId){
+    const book = data.books.find(b=>b.id===editingBookId);
+    if(book){
+      const wasFini = book.status === 'fini';
+      book.title = title; book.author = author; book.category = category;
+      book.totalPages = totalPages; book.status = status; book.coverUrl = pendingCoverUrl;
+      if(status === 'fini' && !wasFini) book.finishedDate = todayStr();
+      if(status !== 'fini') book.finishedDate = null;
+    }
+    editingBookId = null;
+  } else {
+    const book = { id: uid(), title, author, category, totalPages, status, coverUrl: pendingCoverUrl };
+    if(status === 'fini') book.finishedDate = todayStr();
+    data.books.push(book);
+  }
+  closeModal('modalBook');
+  saveData();
+};
+
+// ---- book search (Google Books API — couvre le catalogue FR et EN/US) ----
+let searchDebounce = null;
+document.getElementById('bookSearch').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(searchDebounce);
+  if(q.length < 3){ document.getElementById('searchResults').style.display = 'none'; return; }
+  searchDebounce = setTimeout(() => searchBooks(q), 350);
+});
+
+async function searchBooks(query){
+  const resEl = document.getElementById('searchResults');
+  resEl.style.display = 'block';
+  resEl.innerHTML = '<div class="search-result-item"><span class="search-result-meta">Recherche...</span></div>';
+  try{
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=8&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,subject`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const json = await r.json();
+    const items = json.docs || [];
+    if(items.length === 0){
+      resEl.innerHTML = '<div class="search-result-item"><span class="search-result-meta">Aucun résultat — renseigne les champs manuellement.</span></div>';
+      return;
+    }
+    resEl.innerHTML = items.map((v, i) => {
+      const cover = v.cover_i ? `https://covers.openlibrary.org/b/id/${v.cover_i}-M.jpg` : '';
+      const authors = (v.author_name || []).join(', ');
+      const year = v.first_publish_year || '';
+      const coverHTML = cover
+        ? `<img class="search-result-cover" src="${cover}" alt="">`
+        : `<div class="search-result-cover"></div>`;
+      return `<div class="search-result-item" data-idx="${i}">
+        ${coverHTML}
+        <div class="search-result-text">
+          <div class="search-result-title">${escapeHTML(v.title||'Sans titre')}</div>
+          <div class="search-result-meta">${escapeHTML(authors)}${year?' · '+year:''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    resEl.querySelectorAll('.search-result-item').forEach(elItem => {
+      elItem.addEventListener('click', () => {
+        const idx = parseInt(elItem.dataset.idx, 10);
+        selectSearchResult(items[idx]);
+      });
+    });
+  } catch(err){
+    resEl.innerHTML = `<div class="search-result-item"><span class="search-result-meta">
+      Recherche indisponible (${escapeHTML(err.message || 'erreur réseau')}). Vérifie ta connexion, ou saisis les infos manuellement.
+    </span></div>`;
+  }
+}
+
+function selectSearchResult(v){
+  const cover = v.cover_i ? `https://covers.openlibrary.org/b/id/${v.cover_i}-L.jpg` : '';
+  const title = v.title || '';
+  const author = (v.author_name || []).join(', ');
+  document.getElementById('bookTitle').value = title;
+  document.getElementById('bookAuthor').value = author;
+  document.getElementById('bookCategory').value = (v.subject && v.subject[0]) || '';
+  document.getElementById('bookPages').value = v.number_of_pages_median || '';
+  pendingCoverUrl = cover;
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('bookSearch').value = title;
+  document.getElementById('selectedPreview').innerHTML = cover
+    ? `<div class="selected-book-preview"><img src="${cover}" alt="">
+       <span style="font-size:13px;color:var(--text-2)" id="enrichStatus">Sélectionné — recherche de pages/catégorie complémentaires...</span></div>`
+    : '';
+  enrichFromGoogleBooks(title, author);
+}
+
+async function enrichFromGoogleBooks(title, author){
+  const statusEl = document.getElementById('enrichStatus');
+  try{
+    const q = `intitle:${title}${author ? ' inauthor:'+author.split(',')[0] : ''}`;
+    const url = `https://www.googleapis.com/books/v1/volumes?maxResults=1&q=${encodeURIComponent(q)}`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const json = await r.json();
+    const v = json.items && json.items[0] && json.items[0].volumeInfo;
+    if(!v){ if(statusEl) statusEl.textContent = 'Sélectionné — vérifie les champs pré-remplis, ils ne sont pas toujours fiables.'; return; }
+
+    const pagesField = document.getElementById('bookPages');
+    const catField = document.getElementById('bookCategory');
+    // only overwrite empty fields, or Open Library placeholders that are less trustworthy
+    if(v.pageCount) pagesField.value = v.pageCount;
+    if(v.categories && v.categories[0]) catField.value = v.categories[0];
+
+    if(statusEl) statusEl.textContent = 'Sélectionné — pages et catégorie affinées via Google Books. Vérifie avant de valider.';
+  } catch(err){
+    if(statusEl) statusEl.textContent = 'Sélectionné — vérifie les champs pré-remplis, ils ne sont pas toujours fiables.';
+  }
+}
+
+document.getElementById('btnSettings').onclick = () => {
+  document.getElementById('settingGoal').value = data.settings.dailyGoalMinutes;
+  document.getElementById('settingYearGoal').value = data.settings.booksPerYearGoal || 12;
+  openModal('modalSettings');
+};
+document.getElementById('confirmSettings').onclick = () => {
+  const v = parseInt(document.getElementById('settingGoal').value, 10);
+  const y = parseInt(document.getElementById('settingYearGoal').value, 10);
+  if(v>0) data.settings.dailyGoalMinutes = v;
+  if(y>0) data.settings.booksPerYearGoal = y;
+  closeModal('modalSettings');
+  saveData();
+};
+
+// ---- export / import ----
+document.getElementById('btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `suivi-lecture-export-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+document.getElementById('btnImport').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.books || !parsed.sessions || !parsed.settings) throw new Error('format inattendu');
+      if(!confirm('Importer ce fichier remplacera toutes tes données actuelles. Continuer ?')) return;
+      data = parsed;
+      saveData();
+      closeModal('modalSettings');
+    } catch(err){
+      alert('Fichier invalide : ' + err.message);
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+// ---- timer ----
+let timerInterval = null, timerSeconds = 0, timerRunning = false;
+document.getElementById('btnTimer').onclick = () => {
+  timerSeconds = 0; timerRunning = false;
+  document.getElementById('timerDisplay').textContent = '00:00';
+  document.getElementById('timerStartStop').textContent = 'Démarrer';
+  document.getElementById('timerStartStop').style.display = 'inline-block';
+  document.getElementById('timerFinish').style.display = 'none';
+  openModal('modalTimer');
+};
+document.getElementById('timerStartStop').onclick = () => {
+  if(!timerRunning){
+    timerRunning = true;
+    document.getElementById('timerStartStop').textContent = 'Pause';
+    document.getElementById('timerFinish').style.display = 'inline-block';
+    timerInterval = setInterval(()=>{
+      timerSeconds++;
+      const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
+      const s = String(timerSeconds%60).padStart(2,'0');
+      document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+    },1000);
+  } else {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    document.getElementById('timerStartStop').textContent = 'Reprendre';
+  }
+};
+document.getElementById('timerFinish').onclick = () => {
+  clearInterval(timerInterval);
+  const bookId = document.getElementById('timerBook').value;
+  const minutes = Math.max(1, Math.round(timerSeconds/60));
+  if(!bookId){ alert('Choisis un livre.'); return; }
+  closeModal('modalTimer');
+  document.getElementById('logDate').value = todayStr();
+  document.getElementById('logMinutes').value = minutes;
+  document.getElementById('logPages').value = '';
+  openModal('modalLog');
+  document.getElementById('logBook').value = bookId;
+};
+
+// close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); });
+});
+
+render();
+</script>
+<div id="globalShelfMenu"></div>
+</body>
+</html>
