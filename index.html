@@ -13,13 +13,17 @@
   --radius:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{
+html{
   background: linear-gradient(180deg, #2e2e2e 0%, #202020 35%, #131313 100%);
   background-attachment: fixed;
+  overscroll-behavior:none;
+}
+body{
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   line-height:1.5; padding:32px 24px 80px; max-width:960px; margin:0 auto;
   min-height:100vh;
+  overscroll-behavior:none;
 }
 h1{font-size:20px;font-weight:600;margin-bottom:4px}
 .sub{color:var(--text-2);font-size:13px;margin-bottom:24px}
@@ -83,9 +87,9 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
 .search-wrap{position:relative}
 .search-results{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px;
   margin-top:6px;background:var(--surface-2)}
-.search-result-item{display:flex;gap:10px;padding:8px 10px;cursor:pointer;align-items:center}
+.search-result-item{display:flex;gap:14px;padding:10px 12px;cursor:pointer;align-items:center}
 .search-result-item:hover{background:var(--border)}
-.search-result-cover{width:28px;height:40px;object-fit:cover;border-radius:2px;background:var(--border);flex-shrink:0}
+.search-result-cover{width:38px;height:54px;object-fit:cover;border-radius:3px;background:var(--border);flex-shrink:0}
 .search-result-text{min-width:0}
 .search-result-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .search-result-meta{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -122,6 +126,7 @@ button.small{padding:4px 8px;font-size:12px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;
   padding:20px;width:100%;max-width:400px;max-height:90vh;overflow:auto}
+.modal.wide{max-width:640px}
 .modal h3{font-size:16px;margin-bottom:14px}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:5px}
@@ -232,7 +237,7 @@ button.small{padding:4px 8px;font-size:12px}
 
 <!-- Modal: add book -->
 <div class="modal-overlay" id="modalBook">
-  <div class="modal">
+  <div class="modal wide">
     <h3 id="bookModalTitle">Ajouter un livre</h3>
 
     <div class="field search-wrap">
@@ -428,17 +433,22 @@ function renderHeatmap(){
   const minutesByDay = {};
   data.sessions.forEach(s=>{ minutesByDay[s.date] = (minutesByDay[s.date]||0) + s.minutes; });
 
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - 363);
-  // align start to a Sunday
+  const today = new Date();
+  const todayIso = todayStr();
+  // fenêtre centrée sur aujourd'hui : ~6 mois avant, ~6 mois après
+  const start = new Date(today);
+  start.setDate(today.getDate() - 182);
   while(start.getDay() !== 0) start.setDate(start.getDate()-1);
+  const end = new Date(today);
+  end.setDate(today.getDate() + 182);
 
   let d = new Date(start);
+  let todayCell = null;
   while(d <= end){
     const iso = d.toISOString().slice(0,10);
     const m = minutesByDay[iso] || 0;
-    let bg = 'var(--surface-2)';
+    const isFuture = iso > todayIso;
+    let bg = isFuture ? 'rgba(255,255,255,.03)' : 'var(--surface-2)';
     if(m>0 && m<15) bg = '#173a30';
     else if(m>=15 && m<30) bg = '#0f6e56';
     else if(m>=30 && m<60) bg = '#1d9e75';
@@ -446,10 +456,21 @@ function renderHeatmap(){
     const cell = document.createElement('div');
     cell.className='hm-cell';
     cell.style.background = bg;
+    if(iso === todayIso){
+      cell.style.outline = '2px solid var(--green)';
+      cell.style.outlineOffset = '1px';
+      todayCell = cell;
+    }
     cell.title = `${iso} — ${m} min`;
     el.appendChild(cell);
     d.setDate(d.getDate()+1);
   }
+  // centrer le défilement sur aujourd'hui
+  requestAnimationFrame(()=>{
+    if(todayCell){
+      el.scrollLeft = todayCell.offsetLeft - (el.clientWidth / 2) + (todayCell.offsetWidth / 2);
+    }
+  });
 }
 
 // ---- book helpers ----
@@ -678,9 +699,53 @@ document.getElementById('bookSearch').addEventListener('input', (e) => {
 function normTitle(s){
   return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 }
+// proportion de caractères latins (permet d'écarter les titres en alphabet non-latin)
+function latinRatio(s){
+  const letters = (s||'').replace(/[^\p{L}]/gu,'');
+  if(!letters) return 1;
+  const latin = letters.match(/[\p{Script=Latin}]/gu);
+  return (latin ? latin.length : 0) / letters.length;
+}
+function tokenize(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .split(/[^a-z0-9]+/).filter(t => t.length > 1);
+}
+
+// score de pertinence : mots de la requête présents dans titre/auteur, alphabet, métadonnées
+function scoreResult(item, query){
+  const qTokens = tokenize(query);
+  const titleTokens = tokenize(item.title);
+  const authorTokens = tokenize(item.author);
+  if(qTokens.length === 0) return 0;
+
+  let matched = 0;
+  qTokens.forEach(qt => {
+    if(titleTokens.some(t => t === qt || t.startsWith(qt) || qt.startsWith(t))) matched += 1;
+    else if(authorTokens.some(t => t === qt || t.startsWith(qt))) matched += 0.9;
+  });
+  let score = (matched / qTokens.length) * 100;
+
+  // bonus correspondance exacte du titre
+  if(normTitle(item.title) === normTitle(query)) score += 40;
+  // bonus si le titre commence par la requête
+  else if(normTitle(item.title).startsWith(normTitle(query))) score += 20;
+
+  // pénalité forte si le titre est dans un alphabet différent de la requête
+  const qLatin = latinRatio(query) > 0.5;
+  const tLatin = latinRatio(item.title) > 0.5;
+  if(qLatin && !tLatin) score -= 45;
+  // pénalité si l'auteur est dans un autre alphabet (données mal normalisées)
+  if(qLatin && latinRatio(item.author) < 0.5) score -= 15;
+
+  // bonus métadonnées complètes (édition réelle plutôt que fiche fantôme)
+  if(item.cover) score += 12;
+  if(item.pages) score += 6;
+  if(item.source === 'gbfr') score += 10; // édition française
+  return score;
+}
 
 async function fetchOpenLibrary(query){
-  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=8&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,subject`;
+  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,subject`;
   const r = await fetch(url);
   if(!r.ok) throw new Error('OL HTTP ' + r.status);
   const json = await r.json();
@@ -695,8 +760,8 @@ async function fetchOpenLibrary(query){
   }));
 }
 
-async function fetchGoogleBooks(query, extraParams){
-  const url = `https://www.googleapis.com/books/v1/volumes?maxResults=10&q=${encodeURIComponent(query)}${extraParams||''}`;
+async function fetchGoogleBooks(query, extraParams, tag){
+  const url = `https://www.googleapis.com/books/v1/volumes?maxResults=20&printType=books&orderBy=relevance&q=${encodeURIComponent(query)}${extraParams||''}`;
   const r = await fetch(url);
   if(!r.ok) throw new Error('GB HTTP ' + r.status);
   const json = await r.json();
@@ -705,12 +770,14 @@ async function fetchGoogleBooks(query, extraParams){
     const cover = (v.imageLinks && (v.imageLinks.thumbnail || v.imageLinks.smallThumbnail) || '').replace('http://','https://');
     return {
       title: v.title || '',
+      subtitle: v.subtitle || '',
       author: (v.authors || []).join(', '),
       year: v.publishedDate ? v.publishedDate.slice(0,4) : '',
       cover,
       pages: v.pageCount || '',
       category: (v.categories && v.categories[0]) || '',
-      source: 'gb'
+      publisher: v.publisher || '',
+      source: tag || 'gb'
     };
   });
 }
@@ -721,13 +788,13 @@ async function searchBooks(query){
   resEl.innerHTML = '<div class="search-result-item"><span class="search-result-meta">Recherche...</span></div>';
 
   const results = await Promise.allSettled([
+    fetchGoogleBooks(query, '&langRestrict=fr&country=FR', 'gbfr'),
+    fetchGoogleBooks(query, '', 'gb'),
     fetchOpenLibrary(query),
-    fetchGoogleBooks(query),
-    fetchGoogleBooks(query, '&langRestrict=fr&country=FR'),
   ]);
-  const olItems = results[0].status === 'fulfilled' ? results[0].value : [];
+  const gbFrItems = results[0].status === 'fulfilled' ? results[0].value : [];
   const gbItems = results[1].status === 'fulfilled' ? results[1].value : [];
-  const gbFrItems = results[2].status === 'fulfilled' ? results[2].value : [];
+  const olItems = results[2].status === 'fulfilled' ? results[2].value : [];
   const allFailed = results.every(r => r.status === 'rejected');
 
   if(allFailed){
@@ -737,13 +804,12 @@ async function searchBooks(query){
     return;
   }
 
-  // fusion : éditions françaises en priorité, puis résultats généraux, puis Open Library en complément
-  // (titres différents entre éditions FR/EN = pas de doublon, donc les deux apparaissent si pertinent)
+  // fusion + déduplication (titre+auteur pour ne pas écraser deux éditions distinctes)
   const merged = [];
   const index = {};
   [...gbFrItems, ...gbItems, ...olItems].forEach(item => {
     if(!item.title) return;
-    const key = normTitle(item.title);
+    const key = normTitle(item.title) + '|' + normTitle((item.author||'').split(',')[0]);
     if(index[key] === undefined){
       index[key] = merged.length;
       merged.push({ ...item });
@@ -756,21 +822,30 @@ async function searchBooks(query){
     }
   });
 
-  if(merged.length === 0){
+  // classement par pertinence, puis retrait du bruit
+  merged.forEach(item => { item._score = scoreResult(item, query); });
+  const ranked = merged
+    .filter(item => item._score > 25)
+    .sort((a,b) => b._score - a._score);
+
+  const finalList = ranked.length > 0 ? ranked : merged.sort((a,b) => b._score - a._score);
+
+  if(finalList.length === 0){
     resEl.innerHTML = '<div class="search-result-item"><span class="search-result-meta">Aucun résultat — renseigne les champs manuellement.</span></div>';
     return;
   }
-  const shown = merged.slice(0, 35);
+  const shown = finalList.slice(0, 35);
 
   resEl.innerHTML = shown.map((v, i) => {
     const coverHTML = v.cover
       ? `<img class="search-result-cover" src="${v.cover}" alt="">`
       : `<div class="search-result-cover"></div>`;
+    const meta = [v.author, v.year, v.publisher].filter(Boolean).join(' · ');
     return `<div class="search-result-item" data-idx="${i}">
       ${coverHTML}
       <div class="search-result-text">
         <div class="search-result-title">${escapeHTML(v.title||'Sans titre')}</div>
-        <div class="search-result-meta">${escapeHTML(v.author)}${v.year?' · '+v.year:''}</div>
+        <div class="search-result-meta">${escapeHTML(meta)}</div>
       </div>
     </div>`;
   }).join('');
