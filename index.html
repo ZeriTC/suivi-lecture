@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Suivi de lecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20120%20120%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2224%22%20fill%3D%22%231a1a1a%22/%3E%0A%20%20%3Cpolygon%20points%3D%2260%2C14%20100%2C37%20100%2C83%2060%2C106%2020%2C83%2020%2C37%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%224%22%20stroke-linejoin%3D%22round%22%3E%3C/polygon%3E%0A%20%20%3Cline%20x1%3D%2260%22%20y1%3D%2214%22%20x2%3D%2260%22%20y2%3D%22106%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Cline%20x1%3D%2220%22%20y1%3D%2237%22%20x2%3D%22100%22%20y2%3D%2283%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Cline%20x1%3D%22100%22%20y1%3D%2237%22%20x2%3D%2220%22%20y2%3D%2283%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Ccircle%20cx%3D%2260%22%20cy%3D%2260%22%20r%3D%228%22%20fill%3D%22%23F72D00%22%3E%3C/circle%3E%0A%3C/svg%3E">
 <style>
 :root{
@@ -13,6 +16,10 @@
   --green-glow:rgba(57,255,136,0.6);
   --amber:#ef9f27; --coral:#d85a30; --purple:#7f77dd; --teal:#39FF88;
   --radius:10px;
+  --font-display:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --eyebrow:#6E6E6E; --sub:#9A9A9A;
+  --ease-settle: cubic-bezier(0.16,1,0.3,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{
@@ -31,21 +38,15 @@ h1{font-size:20px;font-weight:600;margin-bottom:4px}
 .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .card{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
 .stat{flex:1;min-width:130px}
-.card.stat{padding:6px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;min-height:0;gap:2px}
-.card.stat .level-row{width:100%;justify-content:center;gap:8px}
-.card.stat .level-row > div{text-align:center}
-.card.stat .xp-bar{width:100%;margin-top:4px}
-.stat .label{font-size:11px;color:var(--text-2);margin-bottom:2px}
-.stat .value{font-size:18px;font-weight:600}
-.stat .value small{font-size:11px;color:var(--text-3);font-weight:400}
-.level-badge{width:26px;height:26px;border-radius:50%;background:var(--green-dim);color:var(--green);
-  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0}
-.level-row{display:flex;align-items:center;gap:12px}
-.xp-bar{flex:1;height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:4px}
-.xp-fill{height:100%;background:linear-gradient(90deg,#0B3D24,#39FF88);border-radius:3px;transition:width .3s}
+.card.stat{padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;min-height:0;gap:5px}
+.stat-eyebrow{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;
+  font-size:10.5px;color:var(--eyebrow);font-weight:500}
+.stat-value{font-family:var(--font-display);font-size:22px;font-weight:600;color:#fff;line-height:1.2}
+.stat-sub{font-family:var(--font-mono);font-size:11px;color:var(--sub);font-weight:400}
+.xp-bar{width:100%;height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:2px}
+.xp-fill{height:100%;background:linear-gradient(90deg,#0B3D24,#39FF88);border-radius:3px;transition:width 1s var(--ease-settle)}
 .streak-flame{color:var(--amber)}
-.metric-glow{color:#39FF88;text-shadow:0 0 12px rgba(57,255,136,0.5)}
 .goal-done{color:var(--green)}
 section{margin-bottom:28px}
 section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
@@ -77,6 +78,8 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
 .level-sub{font-size:11px;color:var(--text-3);margin-top:4px}
 .card-actions-row{display:flex;gap:4px;flex-shrink:0}
 .donut-card{display:flex;align-items:center;gap:10px}
+#goalDonut{transition:stroke-dasharray 1s var(--ease-settle)}
+#goalDonut.ring-pulse{animation:ringPulse 1.4s var(--ease-settle)}
 .shelf-grid.mini{gap:10px}
 .shelf-grid.mini .shelf-item{flex:0 0 56px}
 .shelf-grid.mini .shelf-title{display:none}
@@ -131,7 +134,7 @@ button{
   border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; font-family:inherit;
 }
 button:hover{background:var(--border)}
-button.primary{background:linear-gradient(90deg,#0B3D24,#39FF88);border-color:transparent;color:#04140B;font-weight:600;box-shadow:0 0 14px rgba(57,255,136,0.35)}
+button.primary{background:linear-gradient(90deg,#0B3D24,#39FF88);border-color:transparent;color:#04140B;font-weight:600}
 button.primary:hover{filter:brightness(1.1)}
 button.ghost{background:transparent;border-color:transparent;color:var(--text-2);padding:6px 8px}
 button.small{padding:4px 8px;font-size:12px}
@@ -152,43 +155,99 @@ button.small{padding:4px 8px;font-size:12px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .timer-display{font-size:34px;font-weight:600;text-align:center;margin:10px 0;font-variant-numeric:tabular-nums}
 .empty{color:var(--text-3);font-size:13px;text-align:center;padding:20px}
+
+/* ---- feedback : le glow n'existe QUE pendant ces animations déclenchées, jamais au repos ---- */
+
+/* a) case du heatmap qui s'allume à l'ajout d'une session du jour */
+@keyframes cellPulse{
+  0%{transform:scale(0);box-shadow:0 0 0 rgba(57,255,136,0)}
+  40%{transform:scale(1.15);box-shadow:0 0 20px rgba(57,255,136,0.8)}
+  65%{transform:scale(1);box-shadow:0 0 12px rgba(57,255,136,0.4)}
+  100%{transform:scale(1);box-shadow:0 0 0 rgba(57,255,136,0)}
+}
+.hm-cell.cell-pulse{animation:cellPulse 900ms var(--ease-settle)}
+
+/* b) streak qui s'incrémente : petit tic + glow qui pulse puis retombe */
+@keyframes streakMove{
+  0%{transform:translateY(0) scale(1)}
+  45%{transform:translateY(-3px) scale(1.18)}
+  100%{transform:translateY(0) scale(1)}
+}
+@keyframes streakGlow{
+  0%{text-shadow:0 0 0 rgba(57,255,136,0)}
+  25%{text-shadow:0 0 14px rgba(57,255,136,0.75)}
+  100%{text-shadow:0 0 0 rgba(57,255,136,0)}
+}
+#streakVal{display:inline-block}
+#streakVal.tick-anim{animation:streakMove 650ms var(--ease-settle), streakGlow 1400ms ease-out}
+
+/* e) record battu : traitement plus fort et plus rare que le tic classique */
+@keyframes recordGlow{
+  0%{text-shadow:0 0 0 rgba(57,255,136,0)}
+  18%{text-shadow:0 0 26px rgba(57,255,136,1)}
+  100%{text-shadow:0 0 0 rgba(57,255,136,0)}
+}
+#streakVal.record-anim{animation:streakMove 650ms var(--ease-settle), recordGlow 1500ms ease-out}
+@keyframes fadeStrike{0%{opacity:1}100%{opacity:.15}}
+.record-old-fade{text-decoration:line-through;animation:fadeStrike 300ms forwards}
+@keyframes labelPop{
+  0%{opacity:0;transform:translateY(3px)}
+  15%{opacity:1;transform:translateY(0)}
+  80%{opacity:1}
+  100%{opacity:0}
+}
+.record-label{display:inline-block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.09em;
+  color:var(--green);text-transform:uppercase;margin-left:6px;animation:labelPop 2.6s var(--ease-settle) forwards}
+
+/* c) anneau / barres de progression : transition qui "gagne du terrain" au lieu d'un saut */
+@keyframes ringPulse{
+  0%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
+  30%{filter:drop-shadow(0 0 10px rgba(57,255,136,0.85))}
+  100%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
+}
+.shelf-progress-fill{transition:width 1s var(--ease-settle)}
+
+/* f) micro-feedback sur les boutons : léger enfoncement + glow qui charge puis retombe, pas de bounce */
+button{transition:transform 120ms var(--ease-settle)}
+button.btn-press{transform:translateY(1px)}
+@keyframes btnGlow{
+  0%{box-shadow:0 0 0 rgba(57,255,136,0)}
+  35%{box-shadow:0 0 14px rgba(57,255,136,0.5)}
+  100%{box-shadow:0 0 0 rgba(57,255,136,0)}
+}
+button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
 </style>
 </head>
 <body>
 
 <div class="row">
   <div class="card stat">
-    <div class="level-row">
-      <div class="level-badge" id="levelBadge">1</div>
-      <div style="flex:1">
-        <div class="label" id="levelLabel">Niveau 1</div>
-        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
-      </div>
-    </div>
+    <div class="stat-eyebrow" id="levelEyebrow">NIVEAU 1</div>
+    <div class="stat-value" id="levelLabel">Novice</div>
+    <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
   </div>
   <div class="card stat">
-    <div class="label">Série</div>
-    <div class="value"><span class="metric-glow" id="streakVal">0</span> <small>jours</small></div>
-    <div class="label" style="margin-top:4px">Record : <span id="bestStreak">0</span></div>
+    <div class="stat-eyebrow">SÉRIE</div>
+    <div class="stat-value"><span id="streakVal">0</span> <span class="stat-sub">jours</span></div>
+    <div class="stat-sub" id="bestStreakRow">Record : <span id="bestStreak">0</span></div>
   </div>
   <div class="card stat">
-    <div class="label">Objectif du jour</div>
-    <div class="value" id="goalVal">0 / 20 <small>min</small></div>
+    <div class="stat-eyebrow">OBJECTIF DU JOUR</div>
+    <div class="stat-value" id="goalVal">0 / 20 <span class="stat-sub">min</span></div>
   </div>
   <div class="card stat">
-    <div class="label">Temps total lu</div>
-    <div class="value" id="totalTime">0 <small>h</small></div>
+    <div class="stat-eyebrow">TEMPS TOTAL LU</div>
+    <div class="stat-value" id="totalTime">0 <span class="stat-sub">min</span></div>
   </div>
   <div class="card stat donut-card">
-    <svg viewBox="0 0 64 64" width="52" height="52">
+    <svg viewBox="0 0 64 64" width="58" height="58">
       <circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface-2)" stroke-width="8"></circle>
       <circle id="goalDonut" cx="32" cy="32" r="26" fill="none" stroke="#39FF88" stroke-width="8"
-        stroke-dasharray="0 163" stroke-linecap="round" transform="rotate(-90 32 32)"
-        style="filter:drop-shadow(0 0 4px rgba(57,255,136,0.8))"></circle>
+        stroke-dasharray="0 163" stroke-linecap="round" transform="rotate(-90 32 32)"></circle>
     </svg>
     <div>
-      <div class="label">Objectif annuel</div>
-      <div class="value" id="goalYearLabel" style="font-size:16px">0/12</div>
+      <div class="stat-eyebrow">OBJECTIF ANNUEL</div>
+      <div class="stat-value" id="goalYearLabel" style="font-size:17px">0/12</div>
     </div>
   </div>
 </div>
@@ -494,15 +553,14 @@ function renderHeatmap(){
     const m = minutesByDay[iso] || 0;
     const isFuture = iso > todayIso;
     let bg = isFuture ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,0.04)';
-    let glow = 'none';
     if(m>0 && m<15) bg = 'rgba(57,255,136,0.35)';
     else if(m>=15 && m<30) bg = 'rgba(57,255,136,0.55)';
-    else if(m>=30 && m<60){ bg = 'rgba(57,255,136,0.75)'; glow = '0 0 10px rgba(57,255,136,0.6)'; }
-    else if(m>=60){ bg = '#39FF88'; glow = '0 0 10px rgba(57,255,136,0.6)'; }
+    else if(m>=30 && m<60) bg = 'rgba(57,255,136,0.75)';
+    else if(m>=60) bg = '#39FF88';
     const cell = document.createElement('div');
     cell.className='hm-cell';
     cell.style.background = bg;
-    cell.style.boxShadow = glow;
+    cell.dataset.iso = iso;
     if(iso === todayIso){
       cell.style.outline = '2px solid var(--green)';
       cell.style.outlineOffset = '1px';
@@ -512,6 +570,10 @@ function renderHeatmap(){
     if(m>0){
       cell.style.cursor = 'pointer';
       cell.addEventListener('click', () => openDaySessions(iso));
+    }
+    if(iso === pendingCellPulse){
+      cell.classList.add('cell-pulse');
+      pendingCellPulse = null;
     }
     el.appendChild(cell);
     d.setDate(d.getDate()+1);
@@ -606,7 +668,7 @@ function shelfItemHTML(b){
     ? `<img class="shelf-cover" src="${b.coverUrl}" alt="">`
     : `<div class="shelf-cover placeholder" style="background:${color}">${escapeHTML(b.title.slice(0,28))}</div>`;
   const pagesRead = Math.min(b.totalPages||0, pagesReadForBook(b.id));
-  const pct = b.totalPages ? Math.round((pagesRead/b.totalPages)*100) : (b.status==='fini' ? 100 : 0);
+  const pct = b.status==='fini' ? 100 : (b.totalPages ? Math.round((pagesRead/b.totalPages)*100) : 0);
   const progressBar = `<div class="shelf-progress"><div class="shelf-progress-fill" style="width:${pct}%"></div></div>`;
   return `<div class="shelf-item" title="${escapeHTML(b.title)}${b.author?' — '+escapeHTML(b.author):''}">
     <button class="shelf-menu-btn" onclick="openShelfMenu(event,'${b.id}')" aria-label="Options">&#8942;</button>
@@ -642,37 +704,66 @@ function booksFinishedThisYear(){
   const year = new Date().getFullYear();
   return data.books.filter(b => b.status==='fini' && b.finishedDate && new Date(b.finishedDate).getFullYear()===year).length;
 }
+let lastRenderedYearDone = null;
 function renderYearGoal(){
   const goal = data.settings.booksPerYearGoal || 12;
   const done = booksFinishedThisYear();
   const pct = Math.min(1, done/goal);
   const circumference = 2 * Math.PI * 26; // r=26
-  document.getElementById('goalDonut').setAttribute('stroke-dasharray', `${pct*circumference} ${circumference}`);
+  const ring = document.getElementById('goalDonut');
+  ring.setAttribute('stroke-dasharray', `${pct*circumference} ${circumference}`);
   document.getElementById('goalYearLabel').textContent = `${done}/${goal}`;
+  if(lastRenderedYearDone !== null && done > lastRenderedYearDone){
+    ring.classList.remove('ring-pulse');
+    void ring.offsetWidth;
+    ring.classList.add('ring-pulse');
+  }
+  lastRenderedYearDone = done;
 }
 
 function fmtHoursMinutes(mins){
   const h = Math.floor(mins/60);
   const m = Math.round(mins%60);
-  if(h===0) return `${m} <small>min</small>`;
-  if(m===0) return `${h} <small>h</small>`;
-  return `${h}<small>h</small>${String(m).padStart(2,'0')} <small>min</small>`;
+  if(h===0) return `${m} <span class="stat-sub">min</span>`;
+  if(m===0) return `${h} <span class="stat-sub">h</span>`;
+  return `${h}<span class="stat-sub">h</span>${String(m).padStart(2,'0')} <span class="stat-sub">min</span>`;
 }
 
 function render(){
   const info = levelInfo();
-  document.getElementById('levelBadge').textContent = info.lvl;
-  document.getElementById('levelLabel').textContent = `Niveau ${info.lvl} · ${info.name}`;
+  document.getElementById('levelEyebrow').textContent = `NIVEAU ${info.lvl}`;
+  document.getElementById('levelLabel').textContent = info.name;
   document.getElementById('xpFill').style.width = info.pct + '%';
 
   const streak = computeStreak();
-  document.getElementById('streakVal').textContent = streak;
-  document.getElementById('bestStreak').textContent = computeBestStreak();
+  const best = computeBestStreak();
+  const streakEl = document.getElementById('streakVal');
+  streakEl.textContent = streak;
+
+  // déclenche l'animation uniquement quand la valeur vient de progresser (jamais au premier rendu)
+  if(lastRenderedStreak !== null && streak > lastRenderedStreak){
+    const isNewRecord = lastRenderedBest !== null && streak > lastRenderedBest;
+    streakEl.classList.remove('tick-anim','record-anim');
+    void streakEl.offsetWidth;
+    if(isNewRecord){
+      streakEl.classList.add('record-anim');
+      const bestRow = document.getElementById('bestStreakRow');
+      bestRow.innerHTML = `Record : <span class="record-old-fade">${lastRenderedBest}</span> <span id="bestStreak">${best}</span><span class="record-label">Nouveau record</span>`;
+      setTimeout(() => { bestRow.innerHTML = `Record : <span id="bestStreak">${best}</span>`; }, 2600);
+    } else {
+      streakEl.classList.add('tick-anim');
+      document.getElementById('bestStreak').textContent = best;
+    }
+  } else {
+    document.getElementById('bestStreak').textContent = best;
+  }
+  lastRenderedStreak = streak;
+  lastRenderedBest = best;
 
   const goal = data.settings.dailyGoalMinutes;
   const mToday = minutesToday();
   const goalEl = document.getElementById('goalVal');
-  goalEl.innerHTML = `${mToday} / ${goal} <small>min</small>` + (mToday>=goal ? ' <span class="goal-done">&#10003;</span>' : '');
+  goalEl.innerHTML = `${mToday} / ${goal} <span class="stat-sub">min</span>` + (mToday>=goal ? ' <span class="goal-done">&#10003;</span>' : '');
 
   document.getElementById('totalTime').innerHTML = fmtHoursMinutes(totalMinutes());
 
@@ -689,6 +780,11 @@ function fillBookSelects(){
   document.getElementById('logBook').innerHTML = opts || '<option value="">Aucun livre — ajoutes-en un</option>';
   document.getElementById('timerBook').innerHTML = opts || '<option value="">Aucun livre — ajoutes-en un</option>';
 }
+
+// ---- suivi pour les animations déclenchées (jamais de glow permanent, cf règle générale) ----
+let pendingCellPulse = null;
+let lastRenderedStreak = null;
+let lastRenderedBest = null;
 
 // ---- modals ----
 function openModal(id){ document.getElementById(id).classList.add('open'); }
@@ -707,6 +803,7 @@ document.getElementById('confirmLog').onclick = () => {
   const date = document.getElementById('logDate').value || todayStr();
   if(!bookId || !minutes){ alert('Choisis un livre et indique les minutes lues.'); return; }
   data.sessions.push({ id: uid(), bookId, minutes, pages, date });
+  pendingCellPulse = date;
   closeModal('modalLog');
   saveData();
 };
@@ -1121,6 +1218,22 @@ document.getElementById('timerFinish').onclick = () => {
 // close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); });
+});
+
+// ---- micro-feedback boutons : léger enfoncement + glow qui charge puis retombe (règle f) ----
+document.addEventListener('mousedown', (e) => {
+  const btn = e.target.closest('button');
+  if(btn) btn.classList.add('btn-press');
+});
+document.addEventListener('mouseup', (e) => {
+  const btn = e.target.closest('button');
+  document.querySelectorAll('button.btn-press').forEach(b => b.classList.remove('btn-press'));
+  if(btn){
+    btn.classList.remove('btn-glow');
+    void btn.offsetWidth;
+    btn.classList.add('btn-glow');
+    setTimeout(() => btn.classList.remove('btn-glow'), 500);
+  }
 });
 
 // ---- diagnostic : afficher toute erreur JS à l'écran plutôt que de planter en silence ----
