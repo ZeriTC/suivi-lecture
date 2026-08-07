@@ -113,11 +113,12 @@ section h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-
 .shelf-grid.wrap-grid{flex-wrap:wrap;overflow-x:visible;row-gap:18px}
 .shelf-item{cursor:default;flex:0 0 140px;scroll-snap-align:start;position:relative;
   transition:transform 200ms var(--ease-settle), box-shadow 200ms var(--ease-settle), border-color 200ms var(--ease-settle);
-  border:1px solid transparent;border-radius:6px;touch-action:none}
+  border:1px solid transparent;border-radius:6px;touch-action:none;
+  -webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+.shelf-item img{-webkit-user-drag:none}
 .shelf-grid.sortable .shelf-item{cursor:grab}
 .shelf-item.dragging{
   cursor:grabbing;
-  transform:translateY(-4px) scale(1.02);
   box-shadow:var(--shadow-lg);
   border-color:var(--border-strong);
   z-index:20;
@@ -764,43 +765,58 @@ document.getElementById('shelfSort').addEventListener('change', (e) => {
 // ---- drag-to-reorder : toujours actif en mode "ordre manuel", pas de mode édition séparé ----
 function attachDragHandlers(container){
   let dragEl = null;
+  let dragStartX = 0;
   container.querySelectorAll('.shelf-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => e.preventDefault()); // filet de sécurité anti-drag natif d'image
     item.addEventListener('pointerdown', (e) => {
       if(e.target.closest('.shelf-menu-btn')) return; // ne pas déclencher le drag depuis le menu ⋮
       if(e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
       dragEl = item;
+      dragStartX = e.clientX;
       item.classList.add('dragging');
+      item.style.transition = 'none'; // suivi 1:1 du curseur, pas de latence pendant le drag actif
+      item.style.transform = 'translateY(-4px) scale(1.02)';
       item.setPointerCapture(e.pointerId);
     });
     item.addEventListener('pointermove', (e) => {
       if(!dragEl || dragEl !== item) return;
-      const x = e.clientX;
+      const dx = e.clientX - dragStartX;
+      item.style.transform = `translateX(${dx}px) translateY(-4px) scale(1.02)`;
+
+      // position visuelle réelle de la carte draguée (inclut déjà le décalage du curseur)
+      const rect = item.getBoundingClientRect();
+      const draggedCenter = rect.left + rect.width/2;
+
       const siblings = [...container.querySelectorAll('.shelf-item')].filter(s => s !== dragEl);
-      // plus proche voisin (au centre) plutôt qu'un survol strict : fonctionne même dans les espaces entre cartes
       let closest = null, closestDist = Infinity, before = true;
       siblings.forEach(sib => {
         const r = sib.getBoundingClientRect();
         const center = r.left + r.width/2;
-        const dist = Math.abs(x - center);
+        const dist = Math.abs(draggedCenter - center);
         if(dist < closestDist){
           closestDist = dist;
           closest = sib;
-          before = x < center;
+          before = draggedCenter < center;
         }
       });
       if(closest){
-        const currentNext = dragEl.nextElementSibling;
         const wantsNext = before ? closest : closest.nextElementSibling;
-        if(wantsNext === dragEl) return; // déjà à la bonne place
-        if(currentNext === wantsNext) return; // pas de changement réel
+        if(wantsNext === dragEl) return;
+        if(dragEl.nextElementSibling === wantsNext) return;
         flipReorder(container, dragEl, () => {
           container.insertBefore(dragEl, wantsNext);
         });
+        // recale la référence sur la position actuelle du curseur : suivi continu, sans saut visuel
+        dragStartX = e.clientX;
+        item.style.transform = 'translateY(-4px) scale(1.02)';
       }
     });
     const release = (e) => {
       if(!dragEl || dragEl !== item) return;
       item.classList.remove('dragging');
+      item.style.transition = '';
+      item.style.transform = '';
       try{ item.releasePointerCapture(e.pointerId); }catch(err){}
       dragEl = null;
       persistManualOrderFromDOM();
@@ -871,7 +887,7 @@ function shelfPct(b){
 function shelfItemHTML(b){
   const color = categoryColor(b.category||'default');
   const cover = b.coverUrl
-    ? `<img class="shelf-cover" src="${b.coverUrl}" alt="">`
+    ? `<img class="shelf-cover" src="${b.coverUrl}" alt="" draggable="false">`
     : `<div class="shelf-cover placeholder" style="background:${color}">${escapeHTML(b.title.slice(0,28))}</div>`;
   const pct = shelfPct(b);
   const progressBar = `<div class="shelf-progress"><div class="shelf-progress-fill" style="width:${pct}%"></div></div>`;
@@ -892,7 +908,6 @@ function renderLibraryStats(){
     b.status==='fini' ? (b.totalPages||0) : Math.min(b.totalPages||0, pagesReadForBook(b.id))
   ), 0);
   const finished = data.books.filter(b=>b.status==='fini').length;
-  const total = data.books.length;
 
   const counts = {};
   data.books.forEach(b => { if(b.category) counts[b.category] = (counts[b.category]||0) + 1; });
@@ -901,7 +916,7 @@ function renderLibraryStats(){
 
   el.innerHTML = `
     <span>Pages lues : <strong>${totalPages.toLocaleString('fr-FR')}</strong></span>
-    <span>Livres terminés : <strong>${finished}/${total}</strong></span>
+    <span>Livres terminés : <strong>${finished}</strong></span>
     <span>Catégorie favorite : <strong>${escapeHTML(favCategory)}</strong></span>
   `;
 }
