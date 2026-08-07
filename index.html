@@ -20,6 +20,7 @@
   --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --eyebrow:#6E6E6E; --sub:#9A9A9A;
   --ease-settle: cubic-bezier(0.16,1,0.3,1);
+  --ls-wider: 0.09em;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{
@@ -35,19 +36,19 @@ body{
 }
 h1{font-size:20px;font-weight:600;margin-bottom:4px}
 .sub{color:var(--text-2);font-size:13px;margin-bottom:24px}
-.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .card{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
-.stat{flex:1;min-width:130px}
-.card.stat{padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;min-height:0;gap:5px}
-.stat-eyebrow{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;
-  font-size:10.5px;color:var(--eyebrow);font-weight:500}
-.stat-value{font-family:var(--font-display);font-size:22px;font-weight:600;color:#fff;line-height:1.2}
-.stat-sub{font-family:var(--font-mono);font-size:11px;color:var(--sub);font-weight:400}
-.xp-bar{width:100%;height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:2px}
-.xp-fill{height:100%;background:linear-gradient(90deg,#0B3D24,#39FF88);border-radius:3px;transition:width 1s var(--ease-settle)}
-.streak-flame{color:var(--amber)}
-.goal-done{color:var(--green)}
+.stat{min-width:0}
+.card.stat.ring-stat{
+  padding:16px;height:110px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:0;
+}
+.ring-fill{transition:stroke-dashoffset 1s var(--ease-settle)}
+.ring-label{
+  font-family:var(--font-display);font-size:16px;font-weight:500;color:#fff;
+  margin-top:12px;line-height:1.2;white-space:nowrap;
+}
 section{margin-bottom:28px}
 section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 #heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:4px;overflow-x:auto;padding-bottom:4px}
@@ -77,9 +78,6 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
 .hm-stats strong{color:var(--green);font-weight:600}
 .level-sub{font-size:11px;color:var(--text-3);margin-top:4px}
 .card-actions-row{display:flex;gap:4px;flex-shrink:0}
-.donut-card{display:flex;align-items:center;gap:10px}
-#goalDonut{transition:stroke-dasharray 1s var(--ease-settle)}
-#goalDonut.ring-pulse{animation:ringPulse 1.4s var(--ease-settle)}
 .shelf-grid.mini{gap:10px}
 .shelf-grid.mini .shelf-item{flex:0 0 56px}
 .shelf-grid.mini .shelf-title{display:none}
@@ -167,44 +165,22 @@ button.small{padding:4px 8px;font-size:12px}
 }
 .hm-cell.cell-pulse{animation:cellPulse 900ms var(--ease-settle)}
 
-/* b) streak qui s'incrémente : petit tic + glow qui pulse puis retombe */
-@keyframes streakMove{
-  0%{transform:translateY(0) scale(1)}
-  45%{transform:translateY(-3px) scale(1.18)}
-  100%{transform:translateY(0) scale(1)}
-}
-@keyframes streakGlow{
-  0%{text-shadow:0 0 0 rgba(57,255,136,0)}
-  25%{text-shadow:0 0 14px rgba(57,255,136,0.75)}
-  100%{text-shadow:0 0 0 rgba(57,255,136,0)}
-}
-#streakVal{display:inline-block}
-#streakVal.tick-anim{animation:streakMove 650ms var(--ease-settle), streakGlow 1400ms ease-out}
-
-/* e) record battu : traitement plus fort et plus rare que le tic classique */
-@keyframes recordGlow{
-  0%{text-shadow:0 0 0 rgba(57,255,136,0)}
-  18%{text-shadow:0 0 26px rgba(57,255,136,1)}
-  100%{text-shadow:0 0 0 rgba(57,255,136,0)}
-}
-#streakVal.record-anim{animation:streakMove 650ms var(--ease-settle), recordGlow 1500ms ease-out}
-@keyframes fadeStrike{0%{opacity:1}100%{opacity:.15}}
-.record-old-fade{text-decoration:line-through;animation:fadeStrike 300ms forwards}
-@keyframes labelPop{
-  0%{opacity:0;transform:translateY(3px)}
-  15%{opacity:1;transform:translateY(0)}
-  80%{opacity:1}
-  100%{opacity:0}
-}
-.record-label{display:inline-block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.09em;
-  color:var(--green);text-transform:uppercase;margin-left:6px;animation:labelPop 2.6s var(--ease-settle) forwards}
-
-/* c) anneau / barres de progression : transition qui "gagne du terrain" au lieu d'un saut */
+/* c/d/e) anneaux : la portion remplie se dessine en live (stroke-dashoffset), jamais de saut.
+   Le glow n'apparaît que transitoirement : objectif du jour atteint, ou record de série battu. */
 @keyframes ringPulse{
   0%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
   30%{filter:drop-shadow(0 0 10px rgba(57,255,136,0.85))}
   100%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
 }
+.ring-fill.ring-pulse{animation:ringPulse 1.4s var(--ease-settle)}
+
+/* le label texte sous un anneau qui vient de changer : un seul fondu, pas de bounce, pas de couleur */
+@keyframes labelFade{
+  0%{opacity:0.3}
+  100%{opacity:1}
+}
+.ring-label.label-fade{animation:labelFade 400ms var(--ease-settle)}
+
 .shelf-progress-fill{transition:width 1s var(--ease-settle)}
 
 /* f) micro-feedback sur les boutons : léger enfoncement + glow qui charge puis retombe, pas de bounce */
@@ -221,34 +197,37 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
 <body>
 
 <div class="row">
-  <div class="card stat">
-    <div class="stat-eyebrow" id="levelEyebrow">NIVEAU 1</div>
-    <div class="stat-value" id="levelLabel">Novice</div>
-    <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
-  </div>
-  <div class="card stat">
-    <div class="stat-eyebrow">SÉRIE</div>
-    <div class="stat-value"><span id="streakVal">0</span> <span class="stat-sub">jours</span></div>
-    <div class="stat-sub" id="bestStreakRow">Record : <span id="bestStreak">0</span></div>
-  </div>
-  <div class="card stat">
-    <div class="stat-eyebrow">OBJECTIF DU JOUR</div>
-    <div class="stat-value" id="goalVal">0 / 20 <span class="stat-sub">min</span></div>
-  </div>
-  <div class="card stat">
-    <div class="stat-eyebrow">TEMPS TOTAL LU</div>
-    <div class="stat-value" id="totalTime">0 <span class="stat-sub">min</span></div>
-  </div>
-  <div class="card stat donut-card">
-    <svg viewBox="0 0 64 64" width="58" height="58">
-      <circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface-2)" stroke-width="8"></circle>
-      <circle id="goalDonut" cx="32" cy="32" r="26" fill="none" stroke="#39FF88" stroke-width="8"
-        stroke-dasharray="0 163" stroke-linecap="round" transform="rotate(-90 32 32)"></circle>
+  <div class="card stat ring-stat">
+    <svg viewBox="0 0 52 52" width="52" height="52">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="#212121" stroke-width="5"></circle>
+      <circle class="ring-fill" id="levelRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+        stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
     </svg>
-    <div>
-      <div class="stat-eyebrow">OBJECTIF ANNUEL</div>
-      <div class="stat-value" id="goalYearLabel" style="font-size:17px">0/12</div>
-    </div>
+    <div class="ring-label" id="levelLabel">Novice</div>
+  </div>
+  <div class="card stat ring-stat">
+    <svg viewBox="0 0 52 52" width="52" height="52">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="#212121" stroke-width="5"></circle>
+      <circle class="ring-fill" id="streakRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+        stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
+    </svg>
+    <div class="ring-label" id="streakLabel">0 jours</div>
+  </div>
+  <div class="card stat ring-stat">
+    <svg viewBox="0 0 52 52" width="52" height="52">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="#212121" stroke-width="5"></circle>
+      <circle class="ring-fill" id="dayGoalRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+        stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
+    </svg>
+    <div class="ring-label" id="goalVal">0/20 min</div>
+  </div>
+  <div class="card stat ring-stat">
+    <svg viewBox="0 0 52 52" width="52" height="52">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="#212121" stroke-width="5"></circle>
+      <circle class="ring-fill" id="yearGoalRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+        stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
+    </svg>
+    <div class="ring-label" id="goalYearLabel">0/12</div>
   </div>
 </div>
 
@@ -699,7 +678,28 @@ function renderHeatmapStats(){
   `;
 }
 
-// ---- objectif annuel (camembert) ----
+// ---- anneaux : géométrie identique sur les 4 (r=21, stroke 5px), dessin live via stroke-dashoffset ----
+const RING_R = 21;
+const RING_CIRC = 2 * Math.PI * RING_R;
+function setRingProgress(circleEl, pct){
+  const clamped = Math.min(1, Math.max(0, pct));
+  circleEl.style.strokeDasharray = `${RING_CIRC} ${RING_CIRC}`;
+  circleEl.style.strokeDashoffset = `${RING_CIRC * (1 - clamped)}`;
+}
+function pulseRing(circleEl){
+  circleEl.classList.remove('ring-pulse');
+  void circleEl.offsetWidth;
+  circleEl.classList.add('ring-pulse');
+}
+function setRingLabel(el, text){
+  if(el.textContent === text) return;
+  el.textContent = text;
+  el.classList.remove('label-fade');
+  void el.offsetWidth;
+  el.classList.add('label-fade');
+}
+
+// ---- objectif annuel ----
 function booksFinishedThisYear(){
   const year = new Date().getFullYear();
   return data.books.filter(b => b.status==='fini' && b.finishedDate && new Date(b.finishedDate).getFullYear()===year).length;
@@ -708,64 +708,51 @@ let lastRenderedYearDone = null;
 function renderYearGoal(){
   const goal = data.settings.booksPerYearGoal || 12;
   const done = booksFinishedThisYear();
-  const pct = Math.min(1, done/goal);
-  const circumference = 2 * Math.PI * 26; // r=26
-  const ring = document.getElementById('goalDonut');
-  ring.setAttribute('stroke-dasharray', `${pct*circumference} ${circumference}`);
-  document.getElementById('goalYearLabel').textContent = `${done}/${goal}`;
+  const ring = document.getElementById('yearGoalRing');
+  setRingProgress(ring, done/goal);
+  setRingLabel(document.getElementById('goalYearLabel'), `${done}/${goal}`);
   if(lastRenderedYearDone !== null && done > lastRenderedYearDone){
-    ring.classList.remove('ring-pulse');
-    void ring.offsetWidth;
-    ring.classList.add('ring-pulse');
+    pulseRing(ring);
   }
   lastRenderedYearDone = done;
 }
 
-function fmtHoursMinutes(mins){
-  const h = Math.floor(mins/60);
-  const m = Math.round(mins%60);
-  if(h===0) return `${m} <span class="stat-sub">min</span>`;
-  if(m===0) return `${h} <span class="stat-sub">h</span>`;
-  return `${h}<span class="stat-sub">h</span>${String(m).padStart(2,'0')} <span class="stat-sub">min</span>`;
-}
-
+let lastRenderedMToday = null;
 function render(){
   const info = levelInfo();
-  document.getElementById('levelEyebrow').textContent = `NIVEAU ${info.lvl}`;
-  document.getElementById('levelLabel').textContent = info.name;
-  document.getElementById('xpFill').style.width = info.pct + '%';
+  setRingProgress(document.getElementById('levelRing'), info.pct/100);
+  setRingLabel(document.getElementById('levelLabel'), info.name);
 
   const streak = computeStreak();
   const best = computeBestStreak();
-  const streakEl = document.getElementById('streakVal');
-  streakEl.textContent = streak;
+  const streakRing = document.getElementById('streakRing');
+  const streakLabelEl = document.getElementById('streakLabel');
+  // l'anneau de série reflète la progression vers le record personnel
+  setRingProgress(streakRing, best > 0 ? streak/best : (streak > 0 ? 1 : 0));
 
-  // déclenche l'animation uniquement quand la valeur vient de progresser (jamais au premier rendu)
-  if(lastRenderedStreak !== null && streak > lastRenderedStreak){
-    const isNewRecord = lastRenderedBest !== null && streak > lastRenderedBest;
-    streakEl.classList.remove('tick-anim','record-anim');
-    void streakEl.offsetWidth;
-    if(isNewRecord){
-      streakEl.classList.add('record-anim');
-      const bestRow = document.getElementById('bestStreakRow');
-      bestRow.innerHTML = `Record : <span class="record-old-fade">${lastRenderedBest}</span> <span id="bestStreak">${best}</span><span class="record-label">Nouveau record</span>`;
-      setTimeout(() => { bestRow.innerHTML = `Record : <span id="bestStreak">${best}</span>`; }, 2600);
-    } else {
-      streakEl.classList.add('tick-anim');
-      document.getElementById('bestStreak').textContent = best;
-    }
+  const isNewRecord = lastRenderedStreak !== null && lastRenderedBest !== null
+    && streak > lastRenderedBest && streak > lastRenderedStreak;
+
+  if(isNewRecord){
+    pulseRing(streakRing);
+    setRingLabel(streakLabelEl, 'Nouveau record');
+    setTimeout(() => { setRingLabel(streakLabelEl, `${streak} jours`); }, 2200);
   } else {
-    document.getElementById('bestStreak').textContent = best;
+    setRingLabel(streakLabelEl, `${streak} jours`);
   }
   lastRenderedStreak = streak;
   lastRenderedBest = best;
 
   const goal = data.settings.dailyGoalMinutes;
   const mToday = minutesToday();
-  const goalEl = document.getElementById('goalVal');
-  goalEl.innerHTML = `${mToday} / ${goal} <span class="stat-sub">min</span>` + (mToday>=goal ? ' <span class="goal-done">&#10003;</span>' : '');
-
-  document.getElementById('totalTime').innerHTML = fmtHoursMinutes(totalMinutes());
+  const dayRing = document.getElementById('dayGoalRing');
+  setRingProgress(dayRing, mToday/goal);
+  setRingLabel(document.getElementById('goalVal'), `${mToday}/${goal} min`);
+  // glow transitoire uniquement au moment où l'objectif du jour vient d'être atteint
+  if(lastRenderedMToday !== null && lastRenderedMToday < goal && mToday >= goal){
+    pulseRing(dayRing);
+  }
+  lastRenderedMToday = mToday;
 
   renderHeatmap();
   renderHeatmapStats();
