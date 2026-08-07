@@ -10,17 +10,23 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20120%20120%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2224%22%20fill%3D%22%231a1a1a%22/%3E%0A%20%20%3Cpolygon%20points%3D%2260%2C14%20100%2C37%20100%2C83%2060%2C106%2020%2C83%2020%2C37%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%224%22%20stroke-linejoin%3D%22round%22%3E%3C/polygon%3E%0A%20%20%3Cline%20x1%3D%2260%22%20y1%3D%2214%22%20x2%3D%2260%22%20y2%3D%22106%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Cline%20x1%3D%2220%22%20y1%3D%2237%22%20x2%3D%22100%22%20y2%3D%2283%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Cline%20x1%3D%22100%22%20y1%3D%2237%22%20x2%3D%2220%22%20y2%3D%2283%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223%22%3E%3C/line%3E%0A%20%20%3Ccircle%20cx%3D%2260%22%20cy%3D%2260%22%20r%3D%228%22%20fill%3D%22%23F72D00%22%3E%3C/circle%3E%0A%3C/svg%3E">
 <style>
 :root{
-  --bg:#060606; --surface:rgba(255,255,255,0.02); --surface-2:rgba(255,255,255,0.05); --border:rgba(57,255,136,0.1);
-  --text:#eaeaea; --text-2:#a3a3a3; --text-3:#707070;
-  --green:#39FF88; --green-strong:#0B3D24; --green-dim:rgba(57,255,136,0.12);
-  --green-glow:rgba(57,255,136,0.6);
-  --amber:#ef9f27; --coral:#d85a30; --purple:#7f77dd; --teal:#39FF88;
+  --accent:#39FF88;
+  --bg:#060606; --surface:rgba(255,255,255,0.02); --surface-2:rgba(255,255,255,0.05);
+  --border:color-mix(in srgb, var(--accent) 10%, transparent);
+  --border-strong:color-mix(in srgb, var(--accent) 45%, transparent);
+  --text:#eaeaea; --text-2:#a3a3a3; --text-3:#707070; --text-muted:#707070;
+  --green:var(--accent); --green-strong:color-mix(in srgb, var(--accent) 20%, black);
+  --accent-btn-start:color-mix(in srgb, var(--accent) 55%, black);
+  --green-dim:color-mix(in srgb, var(--accent) 12%, transparent);
+  --green-glow:color-mix(in srgb, var(--accent) 60%, transparent);
+  --amber:#ef9f27; --coral:#d85a30; --purple:#7f77dd; --teal:var(--accent);
   --radius:10px;
   --font-display:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
   --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --eyebrow:#6E6E6E; --sub:#9A9A9A;
   --ease-settle: cubic-bezier(0.16,1,0.3,1);
   --ls-wider: 0.09em;
+  --shadow-lg: 0 12px 28px rgba(0,0,0,.55);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{
@@ -44,13 +50,57 @@ h1{font-size:20px;font-weight:600;margin-bottom:4px}
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   text-align:center;gap:0;
 }
-.ring-fill{transition:stroke-dashoffset 1s var(--ease-settle)}
+.ring-fill{stroke:var(--accent);transition:stroke-dashoffset 1s var(--ease-settle)}
 .ring-label{
   font-family:var(--font-display);font-size:16px;font-weight:500;color:#fff;
   margin-top:12px;line-height:1.2;white-space:nowrap;
 }
 section{margin-bottom:28px}
-section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+section h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-header h2{margin-bottom:0}
+.mono-select{
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:var(--ls-wider);
+  font-size:10.5px;color:var(--eyebrow);background:transparent;border:1px solid var(--border);
+  border-radius:6px;padding:6px 10px;cursor:pointer;
+}
+.mono-select:hover{border-color:rgba(255,255,255,0.35);color:var(--text)}
+.mono-select:focus{outline:none;border-color:rgba(255,255,255,0.35)}
+.mono-label{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:var(--ls-wider);
+  font-size:10.5px;color:var(--eyebrow);display:block;margin-bottom:8px}
+.tint-row{display:flex;gap:12px;align-items:center}
+.tint-swatch{
+  width:28px;height:28px;border-radius:50%;padding:0;border:2px solid transparent;
+  cursor:pointer;position:relative;box-sizing:content-box;
+}
+.tint-swatch:hover{border-color:rgba(255,255,255,0.3)}
+.tint-swatch.active{border-color:#fff}
+.tint-custom{
+  background:conic-gradient(from 0deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);
+}
+.tint-custom-panel{
+  margin-top:12px;padding:14px;background:rgba(10,16,13,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border);border-radius:8px;
+}
+.tint-hue-row{display:flex;align-items:center;gap:12px}
+.tint-hue-preview{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:1px solid var(--border)}
+.tint-hue-slider{
+  -webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:3px;
+  background:linear-gradient(90deg,#ff3b3b,#ffdd3b,#3bff5c,#3bfff0,#3b6cff,#c73bff,#ff3b3b);
+  cursor:pointer;
+}
+.tint-hue-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;
+  border:2px solid rgba(0,0,0,0.4);cursor:pointer;
+}
+.tint-hue-slider::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,0.4);cursor:pointer;
+}
+.shelf-group-label{
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:var(--ls-wider);
+  font-size:11px;color:var(--text-muted);flex:0 0 100%;margin:0 0 4px;
+}
+.shelf-group-label:not(:first-child){margin-top:14px}
 #heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:4px;overflow-x:auto;padding-bottom:4px}
 .hm-cell{width:16px;height:16px;border-radius:5px;background:var(--surface-2);transition:box-shadow .15s}
 .hm-legend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);margin-top:8px}
@@ -60,7 +110,18 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
 .book-spine{width:8px;height:44px;border-radius:2px;flex-shrink:0}
 .book-spine.cover{width:32px;height:44px;object-fit:cover;background:var(--surface-2)}
 .shelf-grid{display:flex;gap:20px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
-.shelf-item{cursor:default;flex:0 0 140px;scroll-snap-align:start;position:relative}
+.shelf-grid.wrap-grid{flex-wrap:wrap;overflow-x:visible;row-gap:18px}
+.shelf-item{cursor:default;flex:0 0 140px;scroll-snap-align:start;position:relative;
+  transition:transform 200ms var(--ease-settle), box-shadow 200ms var(--ease-settle), border-color 200ms var(--ease-settle);
+  border:1px solid transparent;border-radius:6px;touch-action:none}
+.shelf-grid.sortable .shelf-item{cursor:grab}
+.shelf-item.dragging{
+  cursor:grabbing;
+  transform:translateY(-4px) scale(1.02);
+  box-shadow:var(--shadow-lg);
+  border-color:var(--border-strong);
+  z-index:20;
+}
 .shelf-menu-btn{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;
   background:rgba(0,0,0,.55);border:none;color:#fff;font-size:14px;line-height:1;padding:0;
   display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;
@@ -88,9 +149,9 @@ section > h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;alig
   color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px}
 .shelf-title{font-size:13px;color:var(--text-2);line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.shelf-separator{flex:0 0 3px;align-self:stretch;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 8px}
+.shelf-separator{flex:0 0 1px;align-self:stretch;background:rgba(255,255,255,0.25);border-radius:1px;margin:0 8px}
 .shelf-progress{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin:8px 0 6px}
-.shelf-progress-fill{height:100%;background:linear-gradient(90deg,#0B3D24,#39FF88);border-radius:2px}
+.shelf-progress-fill{height:100%;background:linear-gradient(90deg,var(--green-strong),var(--accent));border-radius:2px}
 .search-wrap{position:relative}
 .search-results{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px;
   margin-top:6px;background:var(--surface-2)}
@@ -133,7 +194,7 @@ button{
   border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; font-family:inherit;
 }
 button:hover{background:var(--border)}
-button.primary{background:linear-gradient(90deg,#0B3D24,#39FF88);border-color:transparent;color:#04140B;font-weight:600}
+button.primary{background:linear-gradient(90deg,var(--accent-btn-start),var(--accent));border-color:transparent;color:#050505;font-weight:600}
 button.primary:hover{filter:brightness(1.1)}
 button.ghost{background:transparent;border-color:transparent;color:var(--text-2);padding:6px 8px}
 button.small{padding:4px 8px;font-size:12px}
@@ -160,19 +221,19 @@ button.small{padding:4px 8px;font-size:12px}
 
 /* a) case du heatmap qui s'allume à l'ajout d'une session du jour */
 @keyframes cellPulse{
-  0%{transform:scale(0);box-shadow:0 0 0 rgba(57,255,136,0)}
-  40%{transform:scale(1.15);box-shadow:0 0 20px rgba(57,255,136,0.8)}
-  65%{transform:scale(1);box-shadow:0 0 12px rgba(57,255,136,0.4)}
-  100%{transform:scale(1);box-shadow:0 0 0 rgba(57,255,136,0)}
+  0%{transform:scale(0);box-shadow:0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}
+  40%{transform:scale(1.15);box-shadow:0 0 20px color-mix(in srgb, var(--accent) 80%, transparent)}
+  65%{transform:scale(1);box-shadow:0 0 12px color-mix(in srgb, var(--accent) 40%, transparent)}
+  100%{transform:scale(1);box-shadow:0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}
 }
 .hm-cell.cell-pulse{animation:cellPulse 900ms var(--ease-settle)}
 
 /* c/d/e) anneaux : la portion remplie se dessine en live (stroke-dashoffset), jamais de saut.
    Le glow n'apparaît que transitoirement : objectif du jour atteint, ou record de série battu. */
 @keyframes ringPulse{
-  0%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
-  30%{filter:drop-shadow(0 0 10px rgba(57,255,136,0.85))}
-  100%{filter:drop-shadow(0 0 0 rgba(57,255,136,0))}
+  0%{filter:drop-shadow(0 0 0 color-mix(in srgb, var(--accent) 0%, transparent))}
+  30%{filter:drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 85%, transparent))}
+  100%{filter:drop-shadow(0 0 0 color-mix(in srgb, var(--accent) 0%, transparent))}
 }
 .ring-fill.ring-pulse{animation:ringPulse 1.4s var(--ease-settle)}
 
@@ -189,9 +250,9 @@ button.small{padding:4px 8px;font-size:12px}
 button{transition:transform 120ms var(--ease-settle)}
 button.btn-press{transform:translateY(1px)}
 @keyframes btnGlow{
-  0%{box-shadow:0 0 0 rgba(57,255,136,0)}
-  35%{box-shadow:0 0 14px rgba(57,255,136,0.5)}
-  100%{box-shadow:0 0 0 rgba(57,255,136,0)}
+  0%{box-shadow:0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}
+  35%{box-shadow:0 0 14px color-mix(in srgb, var(--accent) 50%, transparent)}
+  100%{box-shadow:0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}
 }
 button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
 </style>
@@ -202,7 +263,7 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
   <div class="card stat ring-stat">
     <svg viewBox="0 0 52 52" width="52" height="52">
       <circle cx="26" cy="26" r="21" fill="none" stroke="#3a3a3a" stroke-width="5"></circle>
-      <circle class="ring-fill" id="levelRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+      <circle class="ring-fill" id="levelRing" cx="26" cy="26" r="21" fill="none" stroke-width="5"
         stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
     </svg>
     <div class="ring-label" id="levelLabel">Novice</div>
@@ -210,7 +271,7 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
   <div class="card stat ring-stat">
     <svg viewBox="0 0 52 52" width="52" height="52">
       <circle cx="26" cy="26" r="21" fill="none" stroke="#3a3a3a" stroke-width="5"></circle>
-      <circle class="ring-fill" id="streakRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+      <circle class="ring-fill" id="streakRing" cx="26" cy="26" r="21" fill="none" stroke-width="5"
         stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
     </svg>
     <div class="ring-label" id="streakLabel">0 jour</div>
@@ -218,7 +279,7 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
   <div class="card stat ring-stat">
     <svg viewBox="0 0 52 52" width="52" height="52">
       <circle cx="26" cy="26" r="21" fill="none" stroke="#3a3a3a" stroke-width="5"></circle>
-      <circle class="ring-fill" id="dayGoalRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+      <circle class="ring-fill" id="dayGoalRing" cx="26" cy="26" r="21" fill="none" stroke-width="5"
         stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
     </svg>
     <div class="ring-label" id="goalVal">0/20 min</div>
@@ -226,7 +287,7 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
   <div class="card stat ring-stat">
     <svg viewBox="0 0 52 52" width="52" height="52">
       <circle cx="26" cy="26" r="21" fill="none" stroke="#3a3a3a" stroke-width="5"></circle>
-      <circle class="ring-fill" id="yearGoalRing" cx="26" cy="26" r="21" fill="none" stroke="#39FF88" stroke-width="5"
+      <circle class="ring-fill" id="yearGoalRing" cx="26" cy="26" r="21" fill="none" stroke-width="5"
         stroke-linecap="round" transform="rotate(-90 26 26)"></circle>
     </svg>
     <div class="ring-label" id="goalYearLabel">0/12</div>
@@ -256,10 +317,10 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
     <div class="hm-legend">
       <span>Moins</span>
       <div class="hm-cell" style="background:rgba(255,255,255,0.04)"></div>
-      <div class="hm-cell" style="background:rgba(57,255,136,0.35)"></div>
-      <div class="hm-cell" style="background:rgba(57,255,136,0.55)"></div>
-      <div class="hm-cell" style="background:rgba(57,255,136,0.75);box-shadow:0 0 6px rgba(57,255,136,0.5)"></div>
-      <div class="hm-cell" style="background:#39FF88;box-shadow:0 0 6px rgba(57,255,136,0.6)"></div>
+      <div class="hm-cell" style="background:color-mix(in srgb, var(--accent) 35%, transparent)"></div>
+      <div class="hm-cell" style="background:color-mix(in srgb, var(--accent) 55%, transparent)"></div>
+      <div class="hm-cell" style="background:color-mix(in srgb, var(--accent) 75%, transparent);box-shadow:0 0 6px color-mix(in srgb, var(--accent) 50%, transparent)"></div>
+      <div class="hm-cell" style="background:var(--accent);box-shadow:0 0 6px color-mix(in srgb, var(--accent) 60%, transparent)"></div>
       <span>Plus</span>
     </div>
     <div class="hm-stats" id="hmStats"></div>
@@ -267,9 +328,18 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
 </section>
 
 <section>
-  <h2>Bibliothèque</h2>
+  <div class="section-header">
+    <h2>Bibliothèque</h2>
+    <select id="shelfSort" class="mono-select">
+      <option value="manual">ORDRE MANUEL</option>
+      <option value="author">AUTEUR (A–Z)</option>
+      <option value="category">CATÉGORIE</option>
+      <option value="progress">PROGRESSION</option>
+    </select>
+  </div>
   <div class="card">
     <div class="shelf-grid" id="shelfGrid"></div>
+    <div class="hm-stats" id="libStats"></div>
   </div>
 </section>
 
@@ -390,6 +460,22 @@ button.btn-glow{animation:btnGlow 480ms var(--ease-settle)}
       <label>Objectif annuel (nombre de livres)</label>
       <input type="number" id="settingYearGoal" min="1">
     </div>
+    <div class="field">
+      <label class="mono-label">TEINTE</label>
+      <div class="tint-row" id="tintRow">
+        <button type="button" class="tint-swatch" data-color="#39FF88" style="background:#39FF88" aria-label="Vert"></button>
+        <button type="button" class="tint-swatch" data-color="#F72D00" style="background:#F72D00" aria-label="Scarlet"></button>
+        <button type="button" class="tint-swatch" data-color="#39C4FF" style="background:#39C4FF" aria-label="Bleu néon"></button>
+        <button type="button" class="tint-swatch tint-custom" id="tintCustomBtn" aria-label="Personnalisé"></button>
+      </div>
+      <div class="tint-custom-panel" id="tintCustomPanel" style="display:none">
+        <label class="mono-label" style="margin-bottom:6px">TEINTE PERSONNALISÉE</label>
+        <div class="tint-hue-row">
+          <input type="range" id="tintHueSlider" min="0" max="360" value="150" class="tint-hue-slider">
+          <div class="tint-hue-preview" id="tintHuePreview"></div>
+        </div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('modalSettings')">Fermer</button>
       <button class="primary" id="confirmSettings">Enregistrer</button>
@@ -422,6 +508,7 @@ function loadData(){
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); render(); }
 let data = loadData();
+if(data.settings.accent){ document.documentElement.style.setProperty('--accent', data.settings.accent); }
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -543,10 +630,10 @@ function renderHeatmap(){
     const m = minutesByDay[iso] || 0;
     const isFuture = iso > todayIso;
     let bg = isFuture ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,0.04)';
-    if(m>0 && m<15) bg = 'rgba(57,255,136,0.35)';
-    else if(m>=15 && m<30) bg = 'rgba(57,255,136,0.55)';
-    else if(m>=30 && m<60) bg = 'rgba(57,255,136,0.75)';
-    else if(m>=60) bg = '#39FF88';
+    if(m>0 && m<15) bg = 'color-mix(in srgb, var(--accent) 35%, transparent)';
+    else if(m>=15 && m<30) bg = 'color-mix(in srgb, var(--accent) 55%, transparent)';
+    else if(m>=30 && m<60) bg = 'color-mix(in srgb, var(--accent) 75%, transparent)';
+    else if(m>=60) bg = 'var(--accent)';
     const cell = document.createElement('div');
     cell.className='hm-cell';
     cell.style.background = bg;
@@ -584,20 +671,143 @@ function pagesReadForBook(bookId){
 }
 
 const STATUS_ORDER = { cours: 0, lire: 1, fini: 2 };
+let shelfSortMode = 'manual';
+
+function getManualOrder(){
+  if(!data.settings.manualOrder) data.settings.manualOrder = [];
+  return data.settings.manualOrder;
+}
+function manualOrderedBooks(){
+  const order = getManualOrder();
+  const byId = new Map(data.books.map(b=>[b.id,b]));
+  const ordered = order.map(id=>byId.get(id)).filter(Boolean);
+  const remaining = data.books.filter(b=>!order.includes(b.id))
+    .sort((a,b)=> (STATUS_ORDER[a.status]??3) - (STATUS_ORDER[b.status]??3));
+  return [...ordered, ...remaining];
+}
+function persistManualOrderFromDOM(){
+  const ids = [...document.querySelectorAll('#shelfGrid .shelf-item')].map(el=>el.dataset.id);
+  data.settings.manualOrder = ids;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); // pas de re-render : on garde le DOM tel quel
+}
+
+// ---- FLIP : les cartes se réordonnent par transform, jamais par fade ----
+function flipReorder(container, dragEl, mutationFn){
+  const items = [...container.children].filter(el=>el.classList && el.classList.contains('shelf-item') && el !== dragEl);
+  const firstRects = new Map(items.map(el => [el, el.getBoundingClientRect()]));
+  mutationFn();
+  items.forEach(el => {
+    const first = firstRects.get(el);
+    if(!first) return;
+    const last = el.getBoundingClientRect();
+    const dx = first.left - last.left;
+    if(dx){
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${dx}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 200ms var(--ease-settle)';
+        el.style.transform = '';
+      });
+    }
+  });
+}
+
 function renderShelf(){
   const el = document.getElementById('shelfGrid');
   if(data.books.length===0){ el.parentElement.innerHTML = '<div class="empty">Aucun livre ajouté pour l\'instant.</div>'; return; }
-  const sorted = [...data.books].sort((a,b)=> (STATUS_ORDER[a.status]??3) - (STATUS_ORDER[b.status]??3));
+
+  el.classList.toggle('sortable', shelfSortMode === 'manual');
+  el.classList.toggle('wrap-grid', shelfSortMode === 'author' || shelfSortMode === 'category');
+
   let html = '';
-  let separatorInserted = false;
-  sorted.forEach(b => {
-    if(!separatorInserted && b.status === 'fini'){
-      html += '<div class="shelf-separator" title="Terminés"></div>';
-      separatorInserted = true;
-    }
-    html += shelfItemHTML(b);
-  });
+
+  if(shelfSortMode === 'manual'){
+    const sorted = manualOrderedBooks();
+    let separatorInserted = false;
+    sorted.forEach(b => {
+      if(!separatorInserted && b.status === 'fini'){
+        html += '<div class="shelf-separator" title="Terminés"></div>';
+        separatorInserted = true;
+      }
+      html += shelfItemHTML(b);
+    });
+  } else if(shelfSortMode === 'progress'){
+    const sorted = [...data.books].sort((a,b)=> shelfPct(b) - shelfPct(a));
+    sorted.forEach(b => { html += shelfItemHTML(b); });
+  } else {
+    // groupé par auteur ou catégorie
+    const keyFn = shelfSortMode === 'author'
+      ? (b => (b.author && b.author.split(',')[0].trim()) || 'Auteur inconnu')
+      : (b => b.category || 'Sans catégorie');
+    const groups = {};
+    data.books.forEach(b => {
+      const key = keyFn(b);
+      (groups[key] ??= []).push(b);
+    });
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b,'fr')).forEach(key => {
+      html += `<div class="shelf-group-label">${escapeHTML(key)}</div>`;
+      groups[key]
+        .sort((a,b)=>a.title.localeCompare(b.title,'fr'))
+        .forEach(b => { html += shelfItemHTML(b); });
+    });
+  }
+
   el.innerHTML = html;
+  if(shelfSortMode === 'manual') attachDragHandlers(el);
+}
+
+document.getElementById('shelfSort').addEventListener('change', (e) => {
+  shelfSortMode = e.target.value;
+  renderShelf();
+});
+
+// ---- drag-to-reorder : toujours actif en mode "ordre manuel", pas de mode édition séparé ----
+function attachDragHandlers(container){
+  let dragEl = null;
+  container.querySelectorAll('.shelf-item').forEach(item => {
+    item.addEventListener('pointerdown', (e) => {
+      if(e.target.closest('.shelf-menu-btn')) return; // ne pas déclencher le drag depuis le menu ⋮
+      if(e.button !== undefined && e.button !== 0) return;
+      dragEl = item;
+      item.classList.add('dragging');
+      item.setPointerCapture(e.pointerId);
+    });
+    item.addEventListener('pointermove', (e) => {
+      if(!dragEl || dragEl !== item) return;
+      const x = e.clientX;
+      const siblings = [...container.querySelectorAll('.shelf-item')].filter(s => s !== dragEl);
+      // plus proche voisin (au centre) plutôt qu'un survol strict : fonctionne même dans les espaces entre cartes
+      let closest = null, closestDist = Infinity, before = true;
+      siblings.forEach(sib => {
+        const r = sib.getBoundingClientRect();
+        const center = r.left + r.width/2;
+        const dist = Math.abs(x - center);
+        if(dist < closestDist){
+          closestDist = dist;
+          closest = sib;
+          before = x < center;
+        }
+      });
+      if(closest){
+        const currentNext = dragEl.nextElementSibling;
+        const wantsNext = before ? closest : closest.nextElementSibling;
+        if(wantsNext === dragEl) return; // déjà à la bonne place
+        if(currentNext === wantsNext) return; // pas de changement réel
+        flipReorder(container, dragEl, () => {
+          container.insertBefore(dragEl, wantsNext);
+        });
+      }
+    });
+    const release = (e) => {
+      if(!dragEl || dragEl !== item) return;
+      item.classList.remove('dragging');
+      try{ item.releasePointerCapture(e.pointerId); }catch(err){}
+      dragEl = null;
+      persistManualOrderFromDOM();
+    };
+    item.addEventListener('pointerup', release);
+    item.addEventListener('pointercancel', release);
+  });
 }
 
 // ---- menu contextuel global (évite le clipping du conteneur défilant) ----
@@ -630,6 +840,7 @@ function deleteBook(id){
   if(!book) return;
   if(!confirm(`Supprimer « ${book.title} » de ta bibliothèque ? L'historique de tes sessions de lecture pour ce livre sera conservé mais ne sera plus rattaché à un titre visible.`)) return;
   data.books = data.books.filter(b=>b.id!==id);
+  data.settings.manualOrder = getManualOrder().filter(x=>x!==id);
   saveData();
 }
 
@@ -652,20 +863,47 @@ function openEditBook(id){
   openModal('modalBook');
 }
 
+function shelfPct(b){
+  const pagesRead = Math.min(b.totalPages||0, pagesReadForBook(b.id));
+  return b.status==='fini' ? 100 : (b.totalPages ? Math.round((pagesRead/b.totalPages)*100) : 0);
+}
+
 function shelfItemHTML(b){
   const color = categoryColor(b.category||'default');
   const cover = b.coverUrl
     ? `<img class="shelf-cover" src="${b.coverUrl}" alt="">`
     : `<div class="shelf-cover placeholder" style="background:${color}">${escapeHTML(b.title.slice(0,28))}</div>`;
-  const pagesRead = Math.min(b.totalPages||0, pagesReadForBook(b.id));
-  const pct = b.status==='fini' ? 100 : (b.totalPages ? Math.round((pagesRead/b.totalPages)*100) : 0);
+  const pct = shelfPct(b);
   const progressBar = `<div class="shelf-progress"><div class="shelf-progress-fill" style="width:${pct}%"></div></div>`;
-  return `<div class="shelf-item" title="${escapeHTML(b.title)}${b.author?' — '+escapeHTML(b.author):''}">
+  return `<div class="shelf-item" data-id="${b.id}" title="${escapeHTML(b.title)}${b.author?' — '+escapeHTML(b.author):''}">
     <button class="shelf-menu-btn" onclick="openShelfMenu(event,'${b.id}')" aria-label="Options">&#8942;</button>
     ${cover}
     ${progressBar}
     <div class="shelf-title">${escapeHTML(b.title)}</div>
   </div>`;
+}
+
+// ---- statistiques bibliothèque ----
+function renderLibraryStats(){
+  const el = document.getElementById('libStats');
+  if(data.books.length === 0){ el.innerHTML = ''; return; }
+
+  const totalPages = data.books.reduce((sum,b) => sum + (
+    b.status==='fini' ? (b.totalPages||0) : Math.min(b.totalPages||0, pagesReadForBook(b.id))
+  ), 0);
+  const finished = data.books.filter(b=>b.status==='fini').length;
+  const total = data.books.length;
+
+  const counts = {};
+  data.books.forEach(b => { if(b.category) counts[b.category] = (counts[b.category]||0) + 1; });
+  const favEntry = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  const favCategory = favEntry ? favEntry[0] : '—';
+
+  el.innerHTML = `
+    <span>Pages lues : <strong>${totalPages.toLocaleString('fr-FR')}</strong></span>
+    <span>Livres terminés : <strong>${finished}/${total}</strong></span>
+    <span>Catégorie favorite : <strong>${escapeHTML(favCategory)}</strong></span>
+  `;
 }
 
 function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
@@ -770,6 +1008,7 @@ function render(){
   renderHeatmapStats();
   renderYearGoal();
   renderShelf();
+  renderLibraryStats();
   fillBookSelects();
 }
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -1127,9 +1366,83 @@ function selectSearchResult(v){
   updateCoverPreview(v.cover);
 }
 
+// ---- teinte de l'app : --accent est l'unique source de vérité ----
+function applyAccent(hex, persist){
+  document.documentElement.style.setProperty('--accent', hex);
+  document.querySelectorAll('.tint-swatch[data-color]').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.color.toLowerCase() === hex.toLowerCase());
+  });
+  const customBtn = document.getElementById('tintCustomBtn');
+  const isPreset = ['#39FF88','#F72D00','#39C4FF'].some(c => c.toLowerCase() === hex.toLowerCase());
+  customBtn.classList.toggle('active', !isPreset);
+  if(persist){ data.settings.accent = hex; saveData(); }
+}
+
+// clamp saturation/luminosité pour éviter une teinte trop terne ou trop pâle sur fond #0A0A0A
+function hexToHsl(hex){
+  let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if(max === min){ h = s = 0; }
+  else{
+    const d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h = (g-b)/d + (g<b?6:0); break;
+      case g: h = (b-r)/d + 2; break;
+      default: h = (r-g)/d + 4;
+    }
+    h /= 6;
+  }
+  return [h*360, s*100, l*100];
+}
+function hslToHex(h,s,l){
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if(s===0){ r=g=b=l; }
+  else{
+    const hue2rgb = (p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+  }
+  const toHex = v => Math.round(v*255).toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+function clampAccentColor(hex){
+  const [h,s,l] = hexToHsl(hex);
+  const clampedS = Math.max(60, s);
+  const clampedL = Math.min(75, Math.max(50, l));
+  return hslToHex(h, clampedS, clampedL);
+}
+
+document.querySelectorAll('.tint-swatch[data-color]').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.getElementById('tintCustomPanel').style.display = 'none';
+    applyAccent(sw.dataset.color, true);
+  });
+});
+
+const CUSTOM_S = 70, CUSTOM_L = 62; // fixes : garantit une teinte toujours lisible sur fond sombre
+document.getElementById('tintCustomBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const panel = document.getElementById('tintCustomPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+const hueSlider = document.getElementById('tintHueSlider');
+const huePreview = document.getElementById('tintHuePreview');
+function applyHue(h){
+  const hex = hslToHex(h, CUSTOM_S, CUSTOM_L);
+  huePreview.style.background = hex;
+  applyAccent(hex, true);
+}
+hueSlider.addEventListener('input', (e) => applyHue(parseInt(e.target.value, 10)));
+
 document.getElementById('btnSettings').onclick = () => {
   document.getElementById('settingGoal').value = data.settings.dailyGoalMinutes;
   document.getElementById('settingYearGoal').value = data.settings.booksPerYearGoal || 12;
+  document.getElementById('tintCustomPanel').style.display = 'none';
+  applyAccent(data.settings.accent || '#39FF88', false);
   openModal('modalSettings');
 };
 document.getElementById('confirmSettings').onclick = () => {
